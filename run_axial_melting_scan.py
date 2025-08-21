@@ -207,7 +207,7 @@ Examples:
   python run_axial_melting_scan.py --mq-values 9.0 15.0 --lambda1-values 4.5 5.0 6.0
   
   # Custom μ range and starting temperature
-  python run_axial_melting_scan.py --mq-values 9.0 --lambda1-values 6.0 7.0 --mu-min 0.1 --mu-max 500 --mu-points 50 --T-start 150
+  python run_axial_melting_scan.py --mq-values 9.0 --lambda1-values 6.0 7.0 -mumin 0.1 -mumax 500 -mupoints 50 -tstart 150
   
   # Stop on first error
   python run_axial_melting_scan.py --mq-values 9.0 15.0 --lambda1-values 4.5 5.0 --stop-on-error

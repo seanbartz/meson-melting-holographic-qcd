@@ -7,13 +7,13 @@ and creates combined plots showing how the phase diagram changes with these para
 
 Usage:
     # Scan over gamma values
-    python batch_phase_diagram_scan.py --parameter gamma --values -25.0 -22.6 -20.0 --lambda1 5.0 --ml 9.0
+    python batch_phase_diagram_scan.py --parameter gamma --values -25.0 -22.6 -20.0 -lambda1 5.0 -mq 9.0
     
     # Scan over lambda4 values  
-    python batch_phase_diagram_scan.py --parameter lambda4 --values 3.0 4.2 5.5 --lambda1 5.0 --ml 9.0
+    python batch_phase_diagram_scan.py --parameter lambda4 --values 3.0 4.2 5.5 -lambda1 5.0 -mq 9.0
     
     # Use range specification
-    python batch_phase_diagram_scan.py --parameter gamma --range -25.0 -20.0 --num-values 6 --lambda1 5.0 --ml 9.0
+    python batch_phase_diagram_scan.py --parameter gamma --range -25.0 -20.0 --num-values 6 -lambda1 5.0 -mq 9.0
 """
 
 import numpy as np

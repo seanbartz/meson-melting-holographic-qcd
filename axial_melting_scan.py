@@ -7,7 +7,7 @@ The melting temperature is defined as the lowest temperature at which the axial
 potential has no local minimum (i.e., the derivative has no zeros).
 
 Usage:
-    python axial_melting_scan.py --mu-min 0 --mu-max 200 --mu-points 21 --mq 9.0 --lambda1 7.438
+    python axial_melting_scan.py -mumin 0 -mumax 200 -mupoints 21 -mq 9.0 -lambda1 7.438
 """
 
 import numpy as np
