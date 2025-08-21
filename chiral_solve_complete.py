@@ -5,10 +5,133 @@ from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp
 from scipy.integrate import odeint
 from joblib import Parallel, delayed
+import pandas as pd
+import os
+from datetime import datetime
 
 # Constants from the paper
 v4 = 4.2
 v3 = -22.6/(6*np.sqrt(2))
+
+def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
+                         v3, v4, sigma_values, d0_values, filename='sigma_calculations.csv'):
+    """
+    Log sigma calculation results to a CSV file for machine learning purposes.
+    
+    Parameters:
+    -----------
+    All input parameters plus results
+    """
+    # Convert v3, v4 back to gamma, lambda4 for logging
+    gamma = v3 * 6 * np.sqrt(2)
+    lambda4 = v4
+    
+    # Ensure we have exactly 3 sigma values (pad with NaN if needed)
+    sigma_padded = np.full(3, np.nan)
+    d0_padded = np.full(3, np.nan)
+    
+    if len(sigma_values) > 0:
+        sigma_padded[:len(sigma_values)] = sigma_values
+        d0_padded[:len(d0_values)] = d0_values
+    
+    # Create data row
+    data_row = {
+        'timestamp': datetime.now().isoformat(),
+        'T': T,
+        'mu': mu,
+        'ui': ui,
+        'uf': uf,
+        'mq': mq_input,
+        'mq_tolerance': mq_tolerance,
+        'lambda1': lambda1,
+        'gamma': gamma,
+        'lambda4': lambda4,
+        'v3': v3,  # Include computed values too
+        'v4': v4,
+        'd0_lower': d0_lower,
+        'd0_upper': d0_upper,
+        'num_solutions': len(sigma_values),
+        'sigma1': sigma_padded[0],
+        'sigma2': sigma_padded[1],
+        'sigma3': sigma_padded[2],
+        'd0_1': d0_padded[0],
+        'd0_2': d0_padded[1],
+        'd0_3': d0_padded[2]
+    }
+    
+    # Create DataFrame
+    df_new = pd.DataFrame([data_row])
+    
+    # Ensure data directory exists
+    data_dir = 'sigma_data'
+    os.makedirs(data_dir, exist_ok=True)
+    filepath = os.path.join(data_dir, filename)
+    
+    # Append to existing file or create new one
+    if os.path.exists(filepath):
+        df_new.to_csv(filepath, mode='a', header=False, index=False)
+    else:
+        df_new.to_csv(filepath, mode='w', header=True, index=False)
+        print(f"Created new sigma calculation log: {filepath}")
+    
+    print(f"Logged sigma calculation: {len(sigma_values)} solutions found for mq={mq_input}, T={T}, mu={mu}")
+
+def load_sigma_data(filename='sigma_calculations.csv'):
+    """
+    Load sigma calculation data from CSV file for analysis or machine learning.
+    
+    Parameters:
+    -----------
+    filename : str
+        Name of the CSV file to load
+        
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame containing all logged sigma calculations
+    """
+    data_dir = 'sigma_data'
+    filepath = os.path.join(data_dir, filename)
+    
+    if not os.path.exists(filepath):
+        print(f"No data file found at {filepath}")
+        return pd.DataFrame()
+    
+    df = pd.read_csv(filepath)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    return df
+
+def sigma_data_summary(filename='sigma_calculations.csv'):
+    """
+    Print a summary of the sigma calculation database.
+    """
+    df = load_sigma_data(filename)
+    
+    if len(df) == 0:
+        print("No data found.")
+        return
+    
+    print(f"Sigma Calculation Database Summary")
+    print(f"=" * 40)
+    print(f"Total calculations: {len(df)}")
+    print(f"Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
+    print()
+    
+    print("Solution distribution:")
+    solution_counts = df['num_solutions'].value_counts().sort_index()
+    for num_sol, count in solution_counts.items():
+        print(f"  {int(num_sol)} solutions: {count} calculations")
+    print()
+    
+    print("Parameter ranges:")
+    numeric_cols = ['T', 'mu', 'mq', 'lambda1', 'gamma', 'lambda4']
+    for col in numeric_cols:
+        if col in df.columns:
+            print(f"  {col}: {df[col].min():.3f} to {df[col].max():.3f}")
+    
+    print(f"\nRecent calculations:")
+    recent = df.tail(3)[['timestamp', 'T', 'mu', 'mq', 'lambda1', 'num_solutions']]
+    print(recent.to_string(index=False))
 
 def blackness(T, mu):
     kappa = 1
@@ -294,7 +417,7 @@ def sigma_of_T(mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, u
         
     return sigma_values, np.max(d0_array) if len(d0_array) > 0 else 0, np.min(d0_array) if len(d0_array) > 0 else 0, d0_approx_list
 
-def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower=0, d0_upper=10, v3=v3, v4=v4):
+def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower=0, d0_upper=10, v3=v3, v4=v4, log_results=True):
     """
     Calculate sigma values and corresponding chiral fields for a given quark mass.
     
@@ -322,6 +445,8 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
         Chiral parameter v3 (default: global value)
     v4 : float
         Chiral parameter v4 (default: global value)
+    log_results : bool
+        Whether to log the results to CSV file (default: True)
         
     Returns:
     --------
@@ -341,6 +466,11 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
             
     valid_sigma_values = [sigma_values[i] for i in non_zero_indices]
     valid_d0_approx_list = [d0_approx_list[i] for i in non_zero_indices]
+    
+    # Log the results if requested
+    if log_results:
+        log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper,
+                            v3, v4, valid_sigma_values, valid_d0_approx_list)
     
     # For each d0, get the corresponding chiral field and derivative
     chiral_fields = []
