@@ -232,28 +232,28 @@ def main():
     parser = argparse.ArgumentParser(description='Run phase diagram mapping for multiple lambda1 values')
     
     # Required arguments
-    parser.add_argument('ml', type=float, help='Light quark mass in MeV')
+    parser.add_argument('-mq', type=float, required=True, help='Light quark mass in MeV')
     
     # Lambda1 range options
-    parser.add_argument('--lambda1-min', type=float, default=0.0, help='Minimum lambda1 value (default: 0.0)')
-    parser.add_argument('--lambda1-max', type=float, default=10.0, help='Maximum lambda1 value (default: 10.0)')
-    parser.add_argument('--lambda1-points', type=int, default=11, help='Number of lambda1 points (default: 11)')
-    parser.add_argument('--lambda1-values', type=str, help='Custom lambda1 values as comma-separated list (e.g., "0,1,2,5,10")')
+    parser.add_argument('-lambda1min', type=float, default=0.0, help='Minimum lambda1 value (default: 0.0)')
+    parser.add_argument('-lambda1max', type=float, default=10.0, help='Maximum lambda1 value (default: 10.0)')
+    parser.add_argument('-lambda1points', type=int, default=11, help='Number of lambda1 points (default: 11)')
+    parser.add_argument('-lambda1values', type=str, help='Custom lambda1 values as comma-separated list (e.g., "0,1,2,5,10")')
     
     # Chemical potential range
-    parser.add_argument('--mu-min', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
-    parser.add_argument('--mu-max', type=float, default=400.0, help='Maximum chemical potential in MeV (default: 400.0)')
-    parser.add_argument('--mu-points', type=int, default=40, help='Number of mu points to sample (default: 40)')
+    parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
+    parser.add_argument('-mumax', type=float, default=400.0, help='Maximum chemical potential in MeV (default: 400.0)')
+    parser.add_argument('-mupoints', type=int, default=40, help='Number of mu points to sample (default: 40)')
     
     # Temperature search parameters
-    parser.add_argument('--tmin', type=float, default=50.0, help='Minimum temperature for search in MeV (default: 40.0)')
-    parser.add_argument('--tmax', type=float, default=100.0, help='Maximum temperature for search in MeV (default: 100.0)')
-    parser.add_argument('--numtemp', type=int, default=50, help='Number of temperature points per iteration (default: 50)')
+    parser.add_argument('-tmin', type=float, default=50.0, help='Minimum temperature for search in MeV (default: 40.0)')
+    parser.add_argument('-tmax', type=float, default=100.0, help='Maximum temperature for search in MeV (default: 100.0)')
+    parser.add_argument('-numtemp', type=int, default=50, help='Number of temperature points per iteration (default: 50)')
     
     # Other parameters
-    parser.add_argument('--minsigma', type=float, default=0.0, help='Minimum sigma value (default: 0.0)')
-    parser.add_argument('--maxsigma', type=float, default=200.0, help='Maximum sigma value (default: 200.0)')
-    parser.add_argument('--a0', type=float, default=0.0, help='Parameter a0 (default: 0.0)')
+    parser.add_argument('-minsigma', type=float, default=0.0, help='Minimum sigma value (default: 0.0)')
+    parser.add_argument('-maxsigma', type=float, default=200.0, help='Maximum sigma value (default: 200.0)')
+    parser.add_argument('-a0', type=float, default=0.0, help='Parameter a0 (default: 0.0)')
     
     # Output options
     parser.add_argument('--output-dir', type=str, default='batch_results', help='Base output directory (default: batch_results)')
@@ -263,22 +263,22 @@ def main():
     args = parser.parse_args()
     
     # Determine lambda1 values
-    if args.lambda1_values:
+    if args.lambda1values:
         # Custom values provided
-        lambda1_values = [float(x.strip()) for x in args.lambda1_values.split(',')]
+        lambda1_values = [float(x.strip()) for x in args.lambda1values.split(',')]
     else:
         # Use range
-        lambda1_values = np.linspace(args.lambda1_min, args.lambda1_max, args.lambda1_points)
+        lambda1_values = np.linspace(args.lambda1min, args.lambda1max, args.lambda1points)
     
     print(f"Lambda1 values to process: {lambda1_values}")
     
     # Run batch calculation
     successful_runs, failed_runs, batch_dir = run_phase_diagram_batch(
         lambda1_values=lambda1_values,
-        ml=args.ml,
-        mu_min=args.mu_min,
-        mu_max=args.mu_max,
-        mu_points=args.mu_points,
+        ml=args.mq,
+        mu_min=args.mumin,
+        mu_max=args.mumax,
+        mu_points=args.mupoints,
         tmin=args.tmin,
         tmax=args.tmax,
         numtemp=args.numtemp,
@@ -291,7 +291,7 @@ def main():
     
     # Create comparison plot if requested and we have successful runs
     if not args.no_comparison_plot and successful_runs:
-        create_comparison_plots(batch_dir, args.ml)
+        create_comparison_plots(batch_dir, args.mq)
     
     return successful_runs, failed_runs, batch_dir
 

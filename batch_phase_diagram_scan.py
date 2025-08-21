@@ -309,8 +309,8 @@ def main():
     parser = argparse.ArgumentParser(description='Batch scan phase diagrams over parameter ranges')
     
     # Required arguments
-    parser.add_argument('--lambda1', type=float, required=True, help='Lambda1 parameter')
-    parser.add_argument('--ml', type=float, required=True, help='Quark mass in MeV')
+    parser.add_argument('-lambda1', type=float, required=True, help='Lambda1 parameter')
+    parser.add_argument('-mq', type=float, required=True, help='Quark mass in MeV')
     
     # Parameter to scan
     parser.add_argument('--parameter', choices=['gamma', 'lambda4'], required=True,
@@ -327,17 +327,17 @@ def main():
                        help='Number of values in range (default: 5)')
     
     # Phase diagram parameters
-    parser.add_argument('--mu-min', type=float, default=0.0, help='Min chemical potential (MeV)')
-    parser.add_argument('--mu-max', type=float, default=200.0, help='Max chemical potential (MeV)')
-    parser.add_argument('--mu-points', type=int, default=20, help='Number of mu points')
-    parser.add_argument('--tmin', type=float, default=80.0, help='Min temperature (MeV)')
-    parser.add_argument('--tmax', type=float, default=210.0, help='Max temperature (MeV)')
-    parser.add_argument('--max-iterations', type=int, default=10, help='Max iterations')
+    parser.add_argument('-mumin', type=float, default=0.0, help='Min chemical potential (MeV)')
+    parser.add_argument('-mumax', type=float, default=200.0, help='Max chemical potential (MeV)')
+    parser.add_argument('-mupoints', type=int, default=20, help='Number of mu points')
+    parser.add_argument('-tmin', type=float, default=80.0, help='Min temperature (MeV)')
+    parser.add_argument('-tmax', type=float, default=210.0, help='Max temperature (MeV)')
+    parser.add_argument('-maxiter', type=int, default=10, help='Max iterations')
     
     # Fixed parameter values (for the parameter not being scanned)
-    parser.add_argument('--gamma-fixed', type=float, default=-22.4,
+    parser.add_argument('-gammafixed', type=float, default=-22.4,
                        help='Fixed gamma value when scanning lambda4 (default: -22.4)')
-    parser.add_argument('--lambda4-fixed', type=float, default=4.2,
+    parser.add_argument('-lambda4fixed', type=float, default=4.2,
                        help='Fixed lambda4 value when scanning gamma (default: 4.2)')
     
     # Plot options

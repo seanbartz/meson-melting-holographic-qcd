@@ -125,7 +125,7 @@ def run_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lambda1_v
     peaks_by_temp_df = peaks_by_temp_df.sort_values('temperature')
     peaks_by_temp_file = os.path.join(summary_dir, 'peaks_by_temperature.csv')
     peaks_by_temp_df.to_csv(peaks_by_temp_file, index=False)
-    print(f"Peak counts by temperature saved to {peaks_by_temp_file}")
+    print(fueak counts by temperature saved to {peaks_by_temp_file}")
     # Save sigma vs temperature
     if sigma_by_temperature:
         # Build DataFrame with one sigma per temperature
@@ -345,34 +345,34 @@ if __name__ == "__main__":
     # Parse command line arguments
     import argparse
     parser = argparse.ArgumentParser(description='Run axial vector temperature scan using direct command line execution.')
-    parser.add_argument('-t_min', '--min-temperature', type=float, default=t_min, help='Minimum temperature in MeV')
-    parser.add_argument('-t_max', '--max-temperature', type=float, default=t_max, help='Maximum temperature in MeV')  
-    parser.add_argument('-t_step', '--temperature-step', type=float, default=t_step, help='Temperature step size in MeV')
-    parser.add_argument('-mu', '--chemical-potential', type=float, default=mu_value, help='Chemical potential in MeV')
-    parser.add_argument('-mq', '--quark-mass', type=float, default=mq_value, help='Quark mass value')
-    parser.add_argument('-l1', '--lambda1', type=float, default=lambda1_value, help='Lambda1 parameter value')
-    parser.add_argument('-wi', '--omega-initial', type=float, default=wi_value, help='Initial frequency in MeV')
-    parser.add_argument('-wf', '--omega-final', type=float, default=wf_value, help='Final frequency in MeV')
-    parser.add_argument('-wc', '--omega-count', type=int, default=wcount_value, help='Number of frequency points')
-    parser.add_argument('-wr', '--omega-resolution', type=float, default=0.1, help='Minimum frequency resolution (default: 0.1 MeV)')
-    parser.add_argument('-ep', '--expected-peaks', type=int, help='Override expected peak count')
+    parser.add_argument('-tmin', type=float, default=t_min, help='Minimum temperature in MeV')
+    parser.add_argument('-tmax', type=float, default=t_max, help='Maximum temperature in MeV')  
+    parser.add_argument('-tstep', type=float, default=t_step, help='Temperature step size in MeV')
+    parser.add_argument('-mu', type=float, default=mu_value, help='Chemical potential in MeV')
+    parser.add_argument('-mq', type=float, default=mq_value, help='Quark mass value')
+    parser.add_argument('-lambda1', type=float, default=lambda1_value, help='Lambda1 parameter value')
+    parser.add_argument('-wi', type=float, default=wi_value, help='Initial frequency in MeV')
+    parser.add_argument('-wf', type=float, default=wf_value, help='Final frequency in MeV')
+    parser.add_argument('-wc', type=int, default=wcount_value, help='Number of frequency points')
+    parser.add_argument('-wr', type=float, default=0.1, help='Minimum frequency resolution (default: 0.1 MeV)')
+    parser.add_argument('-ep', type=int, help='Override expected peak count')
     parser.add_argument('--normalize', action='store_true', help='Normalize the output')
     
     args = parser.parse_args()
     
     # Run the temperature scan
     summary_dir = run_temperature_scan(
-        args.min_temperature,
-        args.max_temperature,
-        args.temperature_step,
-        args.chemical_potential,
-        args.quark_mass,
+        args.tmin,
+        args.tmax,
+        args.tstep,
+        args.mu,
+        args.mq,
         args.lambda1,
-        args.expected_peaks,
-        args.omega_initial,
-        args.omega_final,
-        args.omega_count,
-        args.omega_resolution,
+        args.ep,
+        args.wi,
+        args.wf,
+        args.wc,
+        args.wr,
         args.normalize
     )
     

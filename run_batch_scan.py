@@ -76,9 +76,9 @@ def main():
     
     # Common arguments
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument('--lambda1', type=float, required=True, help='Lambda1 parameter')
-    common.add_argument('--ml', type=float, required=True, help='Quark mass')
-    common.add_argument('--mu-points', type=int, help='Number of mu points')
+    common.add_argument('-lambda1', type=float, required=True, help='Lambda1 parameter')
+    common.add_argument('-mq', type=float, required=True, help='Quark mass')
+    common.add_argument('-mupoints', type=int, help='Number of mu points')
     common.add_argument('--skip-existing', action='store_true', help='Skip existing files')
     
     # Gamma scan
@@ -103,18 +103,18 @@ def main():
     
     # Prepare kwargs
     kwargs = {}
-    if hasattr(args, 'mu_points') and args.mu_points:
-        kwargs['mu_points'] = args.mu_points
+    if hasattr(args, 'mupoints') and args.mupoints:
+        kwargs['mu_points'] = args.mupoints
     if hasattr(args, 'skip_existing') and args.skip_existing:
         kwargs['skip_existing'] = True
     
     # Run appropriate scan
     if args.command == 'gamma-scan':
-        result = run_gamma_scan(args.lambda1, args.ml, **kwargs)
+        result = run_gamma_scan(args.lambda1, args.mq, **kwargs)
     elif args.command == 'lambda4-scan':
-        result = run_lambda4_scan(args.lambda1, args.ml, **kwargs)
+        result = run_lambda4_scan(args.lambda1, args.mq, **kwargs)
     elif args.command == 'custom':
-        result = run_custom_scan(args.parameter, args.values, args.lambda1, args.ml, **kwargs)
+        result = run_custom_scan(args.parameter, args.values, args.lambda1, args.mq, **kwargs)
     else:
         print(f"Unknown command: {args.command}")
         return 1

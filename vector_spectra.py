@@ -471,8 +471,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run vector spectra')
     parser.add_argument('-wi', type=float, default=700, help='Initial frequency in MeV')
     parser.add_argument('-wf', type=float, default=1800, help='Final frequency in MeV')
-    parser.add_argument('--wcount', type=int, default=1100, help='Number of frequency points')
-    parser.add_argument('-wresolution', type=float, default=0.1, help='Target frequency resolution')
+    parser.add_argument('-wc', type=int, default=1100, help='Number of frequency points')
+    parser.add_argument('-wr', type=float, default=0.1, help='Target frequency resolution')
     parser.add_argument('-T', type=float, default=T, help='Temperature in MeV')
     parser.add_argument('-mu', type=float, default=mu, help='Chemical potential in MeV')
     parser.add_argument('--normalize', action='store_true', help='Normalize spectrum by dividing by (ω/μ_g)^2')
@@ -480,8 +480,8 @@ if __name__ == "__main__":
     # Override global parameters
     wi = args.wi
     wf = args.wf
-    wcount = args.wcount
-    wresolution = args.wresolution
+    wcount = args.wc
+    wresolution = args.wr
     T = args.T
     mu = args.mu
     # Set normalization flag

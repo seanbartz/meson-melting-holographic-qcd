@@ -921,17 +921,17 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Calculate axial vector meson spectral functions')
-    parser.add_argument('-T', '--temperature', type=float, default=17.0, help='Temperature in MeV (default: 17.0)')
-    parser.add_argument('-mu', '--chemical-potential', type=float, default=0.0, help='Chemical potential in MeV (default: 0.0)')
-    parser.add_argument('-mq', '--quark-mass', type=float, default=9.0, help='Quark mass (default: 9.0)')
-    parser.add_argument('-l1', '--lambda1', type=float, default=7.438, help='Lambda1 parameter (default: 7.438)')
-    parser.add_argument('-wi', '--omega-initial', type=float, default=700.0, help='Initial frequency in MeV (default: 700.0)')
-    parser.add_argument('-wf', '--omega-final', type=float, default=2400.0, help='Final frequency in MeV (default: 2400.0)')
-    parser.add_argument('-wc', '--omega-count', type=int, default=1700, help='Number of frequency points (default: 1700)')
-    parser.add_argument('-wr', '--omega-resolution', type=float, default=0.01, help='Frequency resolution (default: 0.01)')
-    parser.add_argument('-ui', '--u-initial', type=float, default=1e-2, help='Initial u coordinate (default: 1e-2)')
-    parser.add_argument('-uf', '--u-final', type=float, default=1-1e-4, help='Final u coordinate (default: 1-1e-4)')
-    parser.add_argument('-ep', '--expected-peaks', type=int, help='Expected number of peaks (optional)')
+    parser.add_argument('-T', type=float, default=17.0, help='Temperature in MeV (default: 17.0)')
+    parser.add_argument('-mu', type=float, default=0.0, help='Chemical potential in MeV (default: 0.0)')
+    parser.add_argument('-mq', type=float, default=9.0, help='Quark mass (default: 9.0)')
+    parser.add_argument('-lambda1', type=float, default=7.438, help='Lambda1 parameter (default: 7.438)')
+    parser.add_argument('-wi', type=float, default=700.0, help='Initial frequency in MeV (default: 700.0)')
+    parser.add_argument('-wf', type=float, default=2400.0, help='Final frequency in MeV (default: 2400.0)')
+    parser.add_argument('-wc', type=int, default=1700, help='Number of frequency points (default: 1700)')
+    parser.add_argument('-wr', type=float, default=0.01, help='Frequency resolution (default: 0.01)')
+    parser.add_argument('-ui', type=float, default=1e-2, help='Initial u coordinate (default: 1e-2)')
+    parser.add_argument('-uf', type=float, default=1-1e-4, help='Final u coordinate (default: 1-1e-4)')
+    parser.add_argument('-ep', type=int, help='Expected number of peaks (optional)')
     parser.add_argument('--no-plot', action='store_true', help='Do not display the plot')
     parser.add_argument('--sigma-out', type=str, help='Path to write sigma value as CSV')
     parser.add_argument('--normalize', action='store_true', help='Normalize spectrum by dividing by (ω/μ_g)^2')
@@ -942,17 +942,17 @@ if __name__ == "__main__":
 
     # Run main to get results and sigma
     result = main(
-        T_value=args.temperature,
-        mu_value=args.chemical_potential,
-        mq_value=args.quark_mass,
+        T_value=args.T,
+        mu_value=args.mu,
+        mq_value=args.mq,
         lambda1_value=args.lambda1,
-        wi_value=args.omega_initial,
-        wf_value=args.omega_final,
-        wcount_value=args.omega_count,
-        wresolution_value=args.omega_resolution,
-        ui_value=args.u_initial,
-        uf_value=args.u_final,
-        expected_peaks=args.expected_peaks,
+        wi_value=args.wi,
+        wf_value=args.wf,
+        wcount_value=args.wc,
+        wresolution_value=args.wr,
+        ui_value=args.ui,
+        uf_value=args.uf,
+        expected_peaks=args.ep,
         show_plot=not args.no_plot
     )
     # main now returns (ws, BAs, peakws, peakBAs, mug, sigma)

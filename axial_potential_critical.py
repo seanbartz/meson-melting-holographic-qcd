@@ -364,23 +364,23 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Calculate and plot axial potential derivative')
-    parser.add_argument('-T', '--temperature', type=float, default=17.0, help='Temperature in MeV (default: 17.0)')
-    parser.add_argument('-mu', '--chemical-potential', type=float, default=0.0, help='Chemical potential in MeV (default: 0.0)')
-    parser.add_argument('-mq', '--quark-mass', type=float, default=9.0, help='Quark mass (default: 9.0)')
-    parser.add_argument('-l1', '--lambda1', type=float, default=7.438, help='Lambda1 parameter (default: 7.438)')
-    parser.add_argument('--u-min', type=float, default=0.01, help='Minimum u value (default: 0.01)')
-    parser.add_argument('--u-max', type=float, default=1-1e-5, help='Maximum u value (default: 1-1e-5)')
-    parser.add_argument('--u-points', type=int, default=1000, help='Number of u points (default: 1000)')
+    parser.add_argument('-T', type=float, default=17.0, help='Temperature in MeV (default: 17.0)')
+    parser.add_argument('-mu', type=float, default=0.0, help='Chemical potential in MeV (default: 0.0)')
+    parser.add_argument('-mq', type=float, default=9.0, help='Quark mass (default: 9.0)')
+    parser.add_argument('-lambda1', type=float, default=7.438, help='Lambda1 parameter (default: 7.438)')
+    parser.add_argument('-umin', type=float, default=0.01, help='Minimum u value (default: 0.01)')
+    parser.add_argument('-umax', type=float, default=1-1e-5, help='Maximum u value (default: 1-1e-5)')
+    parser.add_argument('-upoints', type=int, default=1000, help='Number of u points (default: 1000)')
     
     args = parser.parse_args()
     
     # Calculate and plot
     result = plot_axial_potential_derivative(
-        T_value=args.temperature,
-        mu_value=args.chemical_potential,
-        mq_value=args.quark_mass,
+        T_value=args.T,
+        mu_value=args.mu,
+        mq_value=args.mq,
         lambda1_value=args.lambda1,
-        u_min=args.u_min,
-        u_max=args.u_max,
-        u_points=args.u_points
+        u_min=args.umin,
+        u_max=args.umax,
+        u_points=args.upoints
     )

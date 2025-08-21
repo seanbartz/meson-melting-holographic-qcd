@@ -412,7 +412,7 @@ def create_phase_diagram_plot(df, lambda1, ml, plot_dir, gamma=-22.4, lambda4=4.
     plt.xlabel('Chemical Potential μ (MeV)', fontsize=14)
     plt.ylabel('Critical Temperature Tc (MeV)', fontsize=14)
     plt.title(f'QCD Phase Diagram\n'
-              f'$m_q = {ml}$ MeV, $\\lambda_1 = {lambda1:.3f}$', fontsize=16)
+              f'$m_q = {ml}$ MeV, $\\lambda_1 = {lambda1:.3f}$, $\\gamma = {gamma:.3f}$, $\\lambda_4 = {lambda4:.3f}$', fontsize=16)
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=12, loc='best')
     
@@ -501,34 +501,34 @@ def main():
     parser = argparse.ArgumentParser(description='Map QCD phase diagram using improved critical_zoom function')
     
     # Required arguments
-    parser.add_argument('lambda1', type=float, help='Lambda1 parameter for mixing between dilaton and chiral field')
-    parser.add_argument('ml', type=float, help='Light quark mass in MeV')
+    parser.add_argument('-lambda1', type=float, required=True, help='Lambda1 parameter for mixing between dilaton and chiral field')
+    parser.add_argument('-mq', type=float, required=True, help='Light quark mass in MeV')
     
     # Chemical potential range
-    parser.add_argument('--mu-min', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
-    parser.add_argument('--mu-max', type=float, default=200.0, help='Maximum chemical potential in MeV (default: 200.0)')
-    parser.add_argument('--mu-points', type=int, default=20, help='Number of mu points to sample (default: 20)')
+    parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
+    parser.add_argument('-mumax', type=float, default=200.0, help='Maximum chemical potential in MeV (default: 200.0)')
+    parser.add_argument('-mupoints', type=int, default=20, help='Number of mu points to sample (default: 20)')
     
     # Temperature search parameters
-    parser.add_argument('--tmin', type=float, default=80.0, help='Minimum temperature for search in MeV (default: 80.0)')
-    parser.add_argument('--tmax', type=float, default=210.0, help='Maximum temperature for search in MeV (default: 210.0)')
+    parser.add_argument('-tmin', type=float, default=80.0, help='Minimum temperature for search in MeV (default: 80.0)')
+    parser.add_argument('-tmax', type=float, default=210.0, help='Maximum temperature for search in MeV (default: 210.0)')
     
     # Integration parameters
-    parser.add_argument('--ui', type=float, default=1e-2, help='Lower integration bound (default: 1e-2)')
-    parser.add_argument('--uf', default=1-1e-4, type=float, help='Upper integration bound (default: 1-1e-4)')
+    parser.add_argument('-ui', type=float, default=1e-2, help='Lower integration bound (default: 1e-2)')
+    parser.add_argument('-uf', default=1-1e-4, type=float, help='Upper integration bound (default: 1-1e-4)')
     
     # Search parameters
-    parser.add_argument('--d0-lower', type=float, default=0.0, help='Lower bound for d0 search (default: 0.0)')
-    parser.add_argument('--d0-upper', type=float, default=10.0, help='Upper bound for d0 search (default: 10.0)')
-    parser.add_argument('--mq-tolerance', type=float, default=0.01, help='Tolerance for quark mass matching (default: 0.01)')
-    parser.add_argument('--max-iterations', type=int, default=10, help='Maximum number of zoom iterations (default: 10)')
+    parser.add_argument('-d0lower', type=float, default=0.0, help='Lower bound for d0 search (default: 0.0)')
+    parser.add_argument('-d0upper', type=float, default=10.0, help='Upper bound for d0 search (default: 10.0)')
+    parser.add_argument('-mqtolerance', type=float, default=0.01, help='Tolerance for quark mass matching (default: 0.01)')
+    parser.add_argument('-maxiterations', type=int, default=10, help='Maximum number of zoom iterations (default: 10)')
     
     # Model parameters
-    parser.add_argument('--gamma', type=float, default=-22.4, help='Background metric parameter (default: -22.4)')
-    parser.add_argument('--lambda4', type=float, default=4.2, help='Fourth-order coupling parameter (default: 4.2)')
+    parser.add_argument('-gamma', type=float, default=-22.4, help='Background metric parameter (default: -22.4)')
+    parser.add_argument('-lambda4', type=float, default=4.2, help='Fourth-order coupling parameter (default: 4.2)')
     
     # Output options
-    parser.add_argument('-o', '--output', type=str, help='Output CSV filename (if not specified, auto-generated)')
+    parser.add_argument('-o', type=str, help='Output CSV filename (if not specified, auto-generated)')
     parser.add_argument('--no-plot', action='store_true', help='Do not create phase diagram plot')
     parser.add_argument('--no-display', action='store_true', help='Do not display plot (still saves plot file)')
     parser.add_argument('--compare', action='store_true', help='Compare with original method results if available')
@@ -543,29 +543,29 @@ def main():
     
     # Run improved phase diagram mapping
     df = map_phase_diagram_improved(
-        mu_min=args.mu_min,
-        mu_max=args.mu_max, 
-        mu_points=args.mu_points,
+        mu_min=args.mumin,
+        mu_max=args.mumax, 
+        mu_points=args.mupoints,
         lambda1=args.lambda1,
-        ml=args.ml,
+        ml=args.mq,
         tmin=args.tmin,
         tmax=args.tmax,
         ui=args.ui,
         uf=args.uf,
-        d0_lower=args.d0_lower,
-        d0_upper=args.d0_upper,
-        mq_tolerance=args.mq_tolerance,
-        max_iterations=args.max_iterations,
+        d0_lower=args.d0lower,
+        d0_upper=args.d0upper,
+        mq_tolerance=args.mqtolerance,
+        max_iterations=args.maxiterations,
         gamma=args.gamma,
         lambda4=args.lambda4,
-        output_file=args.output,
+        output_file=args.o,
         plot_results=not args.no_plot,
         display_plot=not args.no_display
     )
     
     # Compare with original method if requested
     if args.compare:
-        compare_with_original(df, args.ml, args.lambda1)
+        compare_with_original(df, args.mq, args.lambda1)
     
     return df
 
