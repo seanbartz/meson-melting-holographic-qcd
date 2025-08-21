@@ -73,13 +73,13 @@ if __name__ == '__main__':
     base = BASE_DIR + os.sep
     # T = 40 MeV
     plot_spectra(
-        os.path.join(base, 'axial_data', 'axial_spectral_data_T40.0_mu0.0_mq0.1_lambda17.4.csv'),
+        os.path.join(base, 'axial_data', 'axial_spectral_data_T_40.0_mu_0.0_mq_0.1_lambda1_7.4.csv'),
         os.path.join(base, 'data', 'spectral_data_T40.0_mu0.0_20250408_153052.csv'),
         40
     )
     # T = 41 MeV
     plot_spectra(
-        os.path.join(base, 'axial_data', 'axial_spectral_data_T41.0_mu0.0_mq0.1_lambda17.4.csv'),
+        os.path.join(base, 'axial_data', 'axial_spectral_data_T_41.0_mu_0.0_mq_0.1_lambda1_7.4.csv'),
         os.path.join(base, 'data', 'spectral_data_T41.0_mu0.0_20250408_153109.csv'),
         41
     )

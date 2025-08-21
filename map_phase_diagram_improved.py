@@ -229,7 +229,7 @@ def map_phase_diagram_improved(mu_min, mu_max, mu_points, lambda1, ml,
 
     # Generate output filename if not provided
     if output_file is None:
-        output_file = os.path.join(data_dir, f"phase_diagram_improved_ml_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv")
+        output_file = os.path.join(data_dir, f"phase_diagram_improved_mq_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv")
 
     # Save to CSV
     df.to_csv(output_file, index=False)
@@ -436,7 +436,7 @@ def create_phase_diagram_plot(df, lambda1, ml, plot_dir, gamma=-22.4, lambda4=4.
     plt.tight_layout()
     
     # Save plot with improved naming
-    plot_filename = os.path.join(plot_dir, f"phase_diagram_improved_ml_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.png")
+    plot_filename = os.path.join(plot_dir, f"phase_diagram_improved_mq_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.png")
     plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
     print(f"Phase diagram plot saved to: {plot_filename}")
     
@@ -457,7 +457,7 @@ def compare_with_original(df_improved, ml, lambda1):
     """
     try:
         # Try to load original results
-        original_file = f"CP_data/phase_diagram_ml{ml:.1f}_lambda1{lambda1:.1f}.csv"
+        original_file = f"CP_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.1f}.csv"
         df_original = pd.read_csv(original_file)
         
         print("\n" + "=" * 70)

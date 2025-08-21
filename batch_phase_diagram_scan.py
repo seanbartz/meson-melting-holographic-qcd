@@ -73,7 +73,7 @@ def run_phase_diagram(lambda1, ml, gamma=None, lambda4=None, mu_min=0.0, mu_max=
         lambda4_used = lambda4
     
     # Expected output file name
-    output_file = f"CP_data/phase_diagram_improved_ml_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma_used:.1f}_lambda4_{lambda4_used:.1f}.csv"
+    output_file = f"CP_data/phase_diagram_improved_mq_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma_used:.1f}_lambda4_{lambda4_used:.1f}.csv"
     
     print(f"Running: {' '.join(cmd)}")
     print(f"Expected output: {output_file}")
@@ -216,7 +216,7 @@ def create_combined_phase_diagram(data_files, parameter_values, parameter_name, 
     # Save plot
     param_str = parameter_name.replace('lambda', 'lambda')  # For filename
     plot_filename = os.path.join(output_dir, 
-                                f"combined_phase_diagram_{param_str}_scan_ml_{ml:.1f}_lambda1_{lambda1:.1f}.png")
+                                f"combined_phase_diagram_{param_str}_scan_mq_{ml:.1f}_lambda1_{lambda1:.1f}.png")
     plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
     print(f"Combined plot saved to: {plot_filename}")
     plt.close()  # Don't display, just save
@@ -254,7 +254,7 @@ def create_summary_plot(valid_datasets, parameter_values, parameter_name, lambda
     
     param_str = parameter_name.replace('lambda', 'lambda')
     summary_filename = os.path.join(output_dir, 
-                                   f"summary_critical_lines_{param_str}_scan_ml_{ml:.1f}_lambda1_{lambda1:.1f}.png")
+                                   f"summary_critical_lines_{param_str}_scan_mq_{ml:.1f}_lambda1_{lambda1:.1f}.png")
     plt.savefig(summary_filename, dpi=300, bbox_inches='tight')
     print(f"Summary plot saved to: {summary_filename}")
     plt.close()
@@ -299,7 +299,7 @@ def create_parameter_evolution_plot(valid_datasets, parameter_values, parameter_
     
     param_str = parameter_name.replace('lambda', 'lambda')
     evolution_filename = os.path.join(output_dir, 
-                                     f"parameter_evolution_{param_str}_scan_ml_{ml:.1f}_lambda1_{lambda1:.1f}.png")
+                                     f"parameter_evolution_{param_str}_scan_mq_{ml:.1f}_lambda1_{lambda1:.1f}.png")
     plt.savefig(evolution_filename, dpi=300, bbox_inches='tight')
     print(f"Evolution plot saved to: {evolution_filename}")
     plt.close()
@@ -384,7 +384,7 @@ def main():
             lambda4_val = param_val
         
         # Check if output file already exists
-        expected_file = f"CP_data/phase_diagram_improved_ml_{args.mq:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
+        expected_file = f"CP_data/phase_diagram_improved_mq_{args.mq:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
         
         if args.skip_existing and os.path.exists(expected_file):
             print(f"Output file exists, skipping: {expected_file}")

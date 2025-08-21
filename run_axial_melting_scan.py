@@ -183,8 +183,8 @@ def print_summary(successful_runs, failed_runs, total_runs, start_time):
             print(f"  ✗ mq={mq}, λ₁={lambda1}")
     
     print("\nGenerated files:")
-    print("  - axial_melting_data_mq{mq}_lambda{lambda1}.csv (data)")
-    print("  - axial_melting_curve_mq{mq}_lambda{lambda1}.png (plots)")
+    print("  - axial_melting_data_mq_{mq}_lambda1_{lambda1}.csv (data)")
+    print("  - axial_melting_curve_mq_{mq}_lambda1_{lambda1}.png (plots)")
     
     print("=" * 80)
 

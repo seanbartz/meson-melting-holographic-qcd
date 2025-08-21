@@ -81,8 +81,8 @@ python map_phase_diagram_improved.py 6.0 0.5 --gamma -20.0 --lambda4 5.0
 
 ### Before (Old Convention):
 ```
-axial_melting_data_mq0.5_lambda6.0.csv
-axial_melting_curve_mq0.5_lambda6.0.png
+axial_melting_data_mq_0.5_lambda1_6.0.csv
+axial_melting_curve_mq_0.5_lambda1_6.0.png
 ```
 
 ### After (New Convention):

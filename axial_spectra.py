@@ -806,7 +806,7 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'spectral_function_imag': np.imag(BAs),
         'spectral_function_abs': np.abs(np.imag(BAs))
     })
-    spectral_filename = os.path.join(data_dir, f"axial_spectral_data_T{T:.1f}_mu{mu:.1f}_mq{mq:.1f}_lambda1{lambda1:.1f}.csv")
+    spectral_filename = os.path.join(data_dir, f"axial_spectral_data_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     spectral_data.to_csv(spectral_filename, index=False)
     print(f"Spectral data saved to {spectral_filename}")
     
@@ -818,7 +818,7 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'peak_spectral_function_imag': np.imag(peakBAs),
         'peak_spectral_function_abs': np.abs(np.imag(peakBAs))
     })
-    peaks_filename = os.path.join(data_dir, f"axial_peaks_data_T{T:.1f}_mu{mu:.1f}_mq{mq:.1f}_lambda1{lambda1:.1f}.csv")
+    peaks_filename = os.path.join(data_dir, f"axial_peaks_data_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     peaks_data.to_csv(peaks_filename, index=False)
     print(f"Peaks data saved to {peaks_filename}")
     
@@ -836,7 +836,7 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'z_h': [zh],
         'Q': [Q]
     })
-    params_filename = os.path.join(data_dir, f"axial_params_T{T:.1f}_mu{mu:.1f}_mq{mq:.1f}_lambda1{lambda1:.1f}.csv")
+    params_filename = os.path.join(data_dir, f"axial_params_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     params_data.to_csv(params_filename, index=False)
     print(f"Parameters saved to {params_filename}")
     

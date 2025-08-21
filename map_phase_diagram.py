@@ -115,7 +115,7 @@ def map_phase_diagram(mu_min, mu_max, mu_points, lambda1, ml,
 
     # Generate output filename if not provided
     if output_file is None:
-        output_file = os.path.join(data_dir, f"phase_diagram_ml{ml:.1f}_lambda1{lambda1:.1f}.csv")
+        output_file = os.path.join(data_dir, f"phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.1f}.csv")
 
     # Save to CSV
     df.to_csv(output_file, index=False)
@@ -171,7 +171,7 @@ def create_phase_diagram_plot(df, lambda1, ml, plot_dir, display_plot=True):
     
     # Load and plot axial melting data if it exists
     try:
-        axial_filename = f'axial_melting_data_mq{ml:.1f}_lambda{lambda1:.1f}.csv'
+        axial_filename = f'axial_melting_data_mq_{ml:.1f}_lambda1_{lambda1:.1f}.csv'
         axial_data = np.loadtxt(axial_filename, delimiter=',', skiprows=4)
         mu_axial = axial_data[:, 0]
         T_axial = axial_data[:, 1]
@@ -217,7 +217,7 @@ def create_phase_diagram_plot(df, lambda1, ml, plot_dir, display_plot=True):
     plt.tight_layout()
     
     # Save plot
-    plot_filename = os.path.join(plot_dir, f"phase_diagram_ml{ml:.1f}_lambda1{lambda1:.1f}.png")
+    plot_filename = os.path.join(plot_dir, f"phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.1f}.png")
     plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
     print(f"Phase diagram plot saved to: {plot_filename}")
     

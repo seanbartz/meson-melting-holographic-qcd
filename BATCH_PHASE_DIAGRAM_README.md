@@ -53,7 +53,7 @@ python batch_phase_diagram_scan.py --parameter gamma --range -25.0 -20.0 --num-v
 
 ### Data Files
 - Individual CSV files saved in `CP_data/` directory
-- Naming convention: `phase_diagram_improved_ml_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv`
+- Naming convention: `phase_diagram_improved_mq_{mq:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv`
 
 ### Plot Files  
 All plots saved in `CP_plots/` directory:

@@ -88,7 +88,7 @@ def run_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lambda1_v
         if expected_peaks is not None:
             cmd.extend(["-ep", f"{expected_peaks}"])
         # Provide sigma output file for direct sigma passback
-        sigma_fn = f"sigma_T{temp:.1f}_mu{mu_value:.1f}_mq{mq_value:.1f}_l1{lambda1_value:.1f}.csv"
+        sigma_fn = f"sigma_T_{temp:.1f}_mu_{mu_value:.1f}_mq_{mq_value:.1f}_l1_{lambda1_value:.1f}.csv"
         sigma_out = os.path.join(summary_dir, sigma_fn)
         cmd.extend(["--sigma-out", sigma_out])
         
@@ -180,7 +180,7 @@ def create_summary_from_peak_files(summary_dir, temperatures, mu_value, mq_value
     # Loop through temperatures and read the corresponding peak files
     for temp in temperatures:
         # Adjust file path logic to ensure correct directory and naming conventions
-        peak_file = os.path.join(data_dir, f"axial_peaks_data_T{temp:.1f}_mu{mu_value:.1f}_mq{mq_value:.1f}_lambda1{lambda1_value:.1f}.csv")
+        peak_file = os.path.join(data_dir, f"axial_peaks_data_T_{temp:.1f}_mu_{mu_value:.1f}_mq_{mq_value:.1f}_lambda1_{lambda1_value:.1f}.csv")
 
         # Debugging: Print the expected file path
         print(f"Looking for peak file: {peak_file}")

@@ -76,7 +76,7 @@ def rename_phase_diagram_improved(base_name, gamma_val, lambda4_val):
     """
     Rename phase_diagram_improved_ files.
     Example: phase_diagram_improved_ml12.0_lambda16.0 
-    → phase_diagram_improved_ml_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2
+    → phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2
     """
     # Pattern: phase_diagram_improved_ml{value}_lambda1{value}
     pattern = r'phase_diagram_improved_ml([\d.]+)_lambda1([\d.]+)'
@@ -85,7 +85,7 @@ def rename_phase_diagram_improved(base_name, gamma_val, lambda4_val):
     if match:
         ml_val = match.group(1)
         lambda1_val = match.group(2)
-        new_name = f"phase_diagram_improved_ml_{ml_val}_lambda1_{lambda1_val}_gamma_{gamma_val}_lambda4_{lambda4_val}"
+        new_name = f"phase_diagram_improved_mq_{ml_val}_lambda1_{lambda1_val}_gamma_{gamma_val}_lambda4_{lambda4_val}"
         return new_name
     
     # Alternative pattern without '1' after lambda: ml{value}_lambda{value}
@@ -95,7 +95,7 @@ def rename_phase_diagram_improved(base_name, gamma_val, lambda4_val):
     if match2:
         ml_val = match2.group(1)
         lambda_val = match2.group(2)
-        new_name = f"phase_diagram_improved_ml_{ml_val}_lambda1_{lambda_val}_gamma_{gamma_val}_lambda4_{lambda4_val}"
+        new_name = f"phase_diagram_improved_mq_{ml_val}_lambda1_{lambda_val}_gamma_{gamma_val}_lambda4_{lambda4_val}"
         return new_name
     
     print(f"Could not parse phase_diagram_improved pattern: {base_name}")

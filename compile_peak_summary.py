@@ -12,7 +12,7 @@ import matplotlib.ticker as ticker
 def main(data_dir, lambda1, mu, mq, out_dir):
     # Pattern to match peak files for given parameters
     pattern = re.compile(
-        rf"axial_peaks_data_T(?P<T>[0-9]+\.?[0-9]*)_mu{mu:.1f}_mq{mq:.1f}_lambda1{lambda1:.1f}\.csv"
+        rf"axial_peaks_data_T_(?P<T>[0-9]+\.?[0-9]*)_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}\.csv"
     )
     files = [f for f in os.listdir(data_dir) if pattern.match(f)]
     if not files:

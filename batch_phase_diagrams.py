@@ -44,7 +44,7 @@ def run_phase_diagram_batch(lambda1_values, ml, mu_min=0.0, mu_max=300.0, mu_poi
     
     # Create timestamp for this batch run
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    batch_dir = os.path.join(base_output_dir, f"batch_{timestamp}_ml{ml:.1f}")
+    batch_dir = os.path.join(base_output_dir, f"batch_{timestamp}_mq_{ml:.1f}")
     os.makedirs(batch_dir, exist_ok=True)
     
     print("=" * 80)
@@ -76,7 +76,8 @@ def run_phase_diagram_batch(lambda1_values, ml, mu_min=0.0, mu_max=300.0, mu_poi
             log.write(f"Processing lambda1 = {lambda1:.6f}\n")
             
             # Create output filename for this lambda1
-            output_file = os.path.join(batch_dir, f"phase_diagram_ml{ml:.1f}_lambda1{lambda1:.6f}.csv")
+            # Individual file name for this lambda1 value
+            output_file = os.path.join(batch_dir, f"phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.csv")
             
             # Construct command to run map_phase_diagram.py
             cmd = [
@@ -114,9 +115,9 @@ def run_phase_diagram_batch(lambda1_values, ml, mu_min=0.0, mu_max=300.0, mu_poi
                     
                     # Move plot to batch directory if it exists and we're keeping plots
                     if keep_individual_plots:
-                        plot_file = f"CP_data/phase_diagram_ml{ml:.1f}_lambda1{lambda1:.6f}.png"
+                        plot_file = f"CP_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.png"
                         if os.path.exists(plot_file):
-                            new_plot_file = os.path.join(batch_dir, f"phase_diagram_ml{ml:.1f}_lambda1{lambda1:.6f}.png")
+                            new_plot_file = os.path.join(batch_dir, f"phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.png")
                             os.rename(plot_file, new_plot_file)
                 else:
                     print(f"  ✗ FAILED - Return code: {result.returncode}")
@@ -222,7 +223,7 @@ def create_comparison_plots(batch_dir, ml):
     plt.tight_layout()
     
     # Save comparison plot
-    comparison_plot = os.path.join(batch_dir, f"phase_diagram_comparison_ml{ml:.1f}.png")
+    comparison_plot = os.path.join(batch_dir, f"phase_diagram_comparison_mq_{ml:.1f}.png")
     plt.savefig(comparison_plot, dpi=300, bbox_inches='tight')
     print(f"Comparison plot saved: {comparison_plot}")
     plt.show()
