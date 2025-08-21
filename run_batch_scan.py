@@ -24,8 +24,8 @@ def run_gamma_scan(lambda1, ml, **kwargs):
         '--parameter', 'gamma',
         '--range', '-25.0', '-20.0',
         '--num-values', '6',
-        '--lambda1', str(lambda1),
-        '--ml', str(ml)
+        '-lambda1', str(lambda1),
+        '-mq', str(ml)
     ]
     
     # Add optional arguments
@@ -42,8 +42,8 @@ def run_lambda4_scan(lambda1, ml, **kwargs):
         '--parameter', 'lambda4',
         '--range', '3.0', '5.5',
         '--num-values', '6',
-        '--lambda1', str(lambda1),
-        '--ml', str(ml)
+        '-lambda1', str(lambda1),
+        '-mq', str(ml)
     ]
     
     # Add optional arguments
@@ -61,7 +61,7 @@ def run_custom_scan(parameter, values, lambda1, ml, **kwargs):
         '--values'
     ]
     cmd.extend([str(v) for v in values])
-    cmd.extend(['--lambda1', str(lambda1), '--ml', str(ml)])
+    cmd.extend(['-lambda1', str(lambda1), '-mq', str(ml)])
     
     # Add optional arguments
     for key, value in kwargs.items():

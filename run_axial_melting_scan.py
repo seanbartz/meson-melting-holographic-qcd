@@ -46,12 +46,12 @@ def run_single_scan(mq, lambda1, mu_min, mu_max, mu_points, T_start, additional_
     # Build the command
     cmd = [
         'python', 'axial_melting_scan.py',
-        '--mq', str(mq),
-        '--lambda1', str(lambda1),
-        '--mu-min', str(mu_min),
-        '--mu-max', str(mu_max),
-        '--mu-points', str(mu_points),
-        '--T-start', str(T_start),
+        '-mq', str(mq),
+        '-lambda1', str(lambda1),
+        '-mumin', str(mu_min),
+        '-mumax', str(mu_max),
+        '-mupoints', str(mu_points),
+        '-tstart', str(T_start),
         '--no-display'  # Don't display plots
     ]
     
@@ -221,15 +221,15 @@ Examples:
                        help='Space-separated list of lambda1 parameter values')
     
     # Chemical potential settings
-    parser.add_argument('--mu-min', type=float, default=0.1,
+    parser.add_argument('-mumin', type=float, default=0.1,
                        help='Minimum chemical potential (MeV) [default: 0.1]')
-    parser.add_argument('--mu-max', type=float, default=200.0,
+    parser.add_argument('-mumax', type=float, default=200.0,
                        help='Maximum chemical potential (MeV) [default: 200.0]')
-    parser.add_argument('--mu-points', type=int, default=21,
+    parser.add_argument('-mupoints', type=int, default=21,
                        help='Number of chemical potential points [default: 21]')
     
     # Temperature settings
-    parser.add_argument('--T-start', type=float, default=200.0,
+    parser.add_argument('-tstart', type=float, default=200.0,
                        help='Starting temperature for scan (MeV) [default: 200.0]')
     
     # Execution options
@@ -249,15 +249,15 @@ Examples:
         print("Error: At least one lambda1 value must be specified")
         sys.exit(1)
     
-    if args.mu_min <= 0:
+    if args.mumin <= 0:
         print("Error: mu-min must be positive (avoid mu=0)")
         sys.exit(1)
     
-    if args.mu_max <= args.mu_min:
+    if args.mumax <= args.mumin:
         print("Error: mu-max must be greater than mu-min")
         sys.exit(1)
     
-    if args.mu_points < 2:
+    if args.mupoints < 2:
         print("Error: mu-points must be at least 2")
         sys.exit(1)
     
@@ -274,12 +274,12 @@ Examples:
         for mq, lambda1 in parameter_combinations:
             cmd = [
                 'python', 'axial_melting_scan.py',
-                '--mq', str(mq),
-                '--lambda1', str(lambda1),
-                '--mu-min', str(args.mu_min),
-                '--mu-max', str(args.mu_max),
-                '--mu-points', str(args.mu_points),
-                '--T-start', str(args.T_start),
+                '-mq', str(mq),
+                '-lambda1', str(lambda1),
+                '-mumin', str(args.mumin),
+                '-mumax', str(args.mumax),
+                '-mupoints', str(args.mupoints),
+                '-tstart', str(args.tstart),
                 '--no-display'
             ]
             print(' '.join(cmd))
@@ -292,7 +292,7 @@ Examples:
     
     successful_runs, failed_runs, total_runs = run_parameter_scan(
         args.mq_values, args.lambda1_values,
-        args.mu_min, args.mu_max, args.mu_points, args.T_start,
+        args.mumin, args.mumax, args.mupoints, args.tstart,
         continue_on_error=not args.stop_on_error
     )
     

@@ -28,12 +28,12 @@ def run_vector_spectra(wi, wf, wcount, wresolution, T, mu, normalize=False):
     """
     cmd = [
         sys.executable, 'vector_spectra.py',
-        '--wi', str(wi),
-        '--wf', str(wf), 
-        '--wcount', str(wcount),
-        '--wresolution', str(wresolution),
-        '--T', str(T),
-        '--mu', str(mu)
+        '-wi', str(wi),
+        '-wf', str(wf), 
+        '-wcount', str(wcount),
+        '-wresolution', str(wresolution),
+        '-T', str(T),
+        '-mu', str(mu)
     ]
     
     if normalize:
@@ -235,13 +235,13 @@ def main():
     mu_values = np.arange(args.mu_start, args.mu_end + args.mu_step/2, args.mu_step)
     
     print(f"Scanning mu values: {mu_values}")
-    print(f"Starting temperature: {args.T_start} MeV")
+    print(f"Starting temperature: {args.tstart} MeV")
     print(f"Temperature step: {args.T_step} MeV")
     print(f"Frequency range: {args.wi} - {args.wf} MeV")
     print(f"Normalized spectrum: {args.normalize}")
     
     # Keep track of melting temperatures for next starting point
-    current_start_temp = args.T_start
+    current_start_temp = args.tstart
     
     for mu in mu_values:
         print(f"\n{'='*60}")

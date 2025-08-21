@@ -81,17 +81,17 @@ def run_phase_diagram_batch(lambda1_values, ml, mu_min=0.0, mu_max=300.0, mu_poi
             # Construct command to run map_phase_diagram.py
             cmd = [
                 sys.executable, "map_phase_diagram.py",
-                str(lambda1), str(ml),
-                "--mu-min", str(mu_min),
-                "--mu-max", str(mu_max),
-                "--mu-points", str(mu_points),
-                "--tmin", str(tmin),
-                "--tmax", str(tmax),
-                "--numtemp", str(numtemp),
-                "--minsigma", str(minsigma),
-                "--maxsigma", str(maxsigma),
-                "--a0", str(a0),
-                "--output", output_file,
+                "-lambda1", str(lambda1), "-mq", str(ml),
+                "-mumin", str(mu_min),
+                "-mumax", str(mu_max),
+                "-mupoints", str(mu_points),
+                "-tmin", str(tmin),
+                "-tmax", str(tmax),
+                "-numtemp", str(numtemp),
+                "-minsigma", str(minsigma),
+                "-maxsigma", str(maxsigma),
+                "-a0", str(a0),
+                "-o", output_file,
                 "--no-display"
             ]
             

@@ -456,15 +456,15 @@ def save_data(mu_values, melting_temperatures, mq_value, lambda1_value, gamma=No
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scan axial melting temperatures vs chemical potential')
-    parser.add_argument('--mu-min', type=float, default=0.0, help='Minimum chemical potential (MeV)')
-    parser.add_argument('--mu-max', type=float, default=200.0, help='Maximum chemical potential (MeV)')
-    parser.add_argument('--mu-points', type=int, default=21, help='Number of chemical potential points')
-    parser.add_argument('--mq', type=float, default=9.0, help='Quark mass (MeV)')
-    parser.add_argument('--lambda1', type=float, default=7.438, help='Lambda1 parameter')
-    parser.add_argument('--gamma', type=float, default=-22.6, help='Background metric parameter gamma (default: -22.6)')
-    parser.add_argument('--lambda4', type=float, default=4.2, help='Fourth-order coupling parameter lambda4 (default: 4.2)')
-    parser.add_argument('--mug', type=float, default=440.0, help='mu_g parameter (default: 440.0)')
-    parser.add_argument('--T-start', type=float, default=200.0, help='Starting temperature for scan (MeV)')
+    parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential (MeV)')
+    parser.add_argument('-mumax', type=float, default=200.0, help='Maximum chemical potential (MeV)')
+    parser.add_argument('-mupoints', type=int, default=21, help='Number of chemical potential points')
+    parser.add_argument('-mq', type=float, default=9.0, help='Quark mass (MeV)')
+    parser.add_argument('-lambda1', type=float, default=7.438, help='Lambda1 parameter')
+    parser.add_argument('-gamma', type=float, default=-22.6, help='Background metric parameter gamma (default: -22.6)')
+    parser.add_argument('-lambda4', type=float, default=4.2, help='Fourth-order coupling parameter lambda4 (default: 4.2)')
+    parser.add_argument('-mug', type=float, default=440.0, help='mu_g parameter (default: 440.0)')
+    parser.add_argument('-tstart', type=float, default=200.0, help='Starting temperature for scan (MeV)')
     parser.add_argument('--no-plot', action='store_true', help='Skip plotting')
     parser.add_argument('--no-display', action='store_true', help='Save plot but do not display it')
     parser.add_argument('--no-save', action='store_true', help='Skip saving data')
@@ -487,16 +487,16 @@ if __name__ == "__main__":
     print("=" * 60)
     print("AXIAL MESON MELTING TEMPERATURE SCANNER")
     print("=" * 60)
-    print(f"Chemical potential range: {args.mu_min} - {args.mu_max} MeV ({args.mu_points} points)")
+    print(f"Chemical potential range: {args.mumin} - {args.mumax} MeV ({args.mupoints} points)")
     print(f"Quark mass: {args.mq} MeV")
     print(f"Lambda1: {args.lambda1}")
     print(f"mu_g: {args.mug} MeV")
-    print(f"Starting temperature: {args.T_start} MeV")
+    print(f"Starting temperature: {args.tstart} MeV")
     print("=" * 60)
     
     # Perform the scan
     mu_values, melting_temperatures = scan_melting_temperatures(
-        args.mu_min, args.mu_max, args.mu_points, args.mq, args.lambda1, args.T_start, v3, v4, args.mug
+        args.mumin, args.mumax, args.mupoints, args.mq, args.lambda1, args.tstart, v3, v4, args.mug
     )
     
     # Print results

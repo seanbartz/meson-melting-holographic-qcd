@@ -50,13 +50,13 @@ def run_phase_diagram(lambda1, ml, gamma=None, lambda4=None, mu_min=0.0, mu_max=
     # Construct command
     cmd = [
         sys.executable, 'map_phase_diagram_improved.py',
-        str(lambda1), str(ml),
-        '--mu-min', str(mu_min),
-        '--mu-max', str(mu_max),
-        '--mu-points', str(mu_points),
-        '--tmin', str(tmin),
-        '--tmax', str(tmax),
-        '--max-iterations', str(max_iterations),
+        '-lambda1', str(lambda1), '-mq', str(ml),
+        '-mumin', str(mu_min),
+        '-mumax', str(mu_max),
+        '-mupoints', str(mu_points),
+        '-tmin', str(tmin),
+        '-tmax', str(tmax),
+        '-maxiterations', str(max_iterations),
         '--no-display'  # Don't display plots
     ]
     
@@ -359,7 +359,7 @@ def main():
     print("=" * 70)
     print(f"Parameter to scan: {args.parameter}")
     print(f"Parameter values: {parameter_values}")
-    print(f"Fixed parameters: lambda1={args.lambda1}, ml={args.ml}")
+    print(f"Fixed parameters: lambda1={args.lambda1}, mq={args.mq}")
     if args.parameter == 'gamma':
         print(f"Fixed lambda4: {args.lambda4_fixed}")
     else:
@@ -384,7 +384,7 @@ def main():
             lambda4_val = param_val
         
         # Check if output file already exists
-        expected_file = f"CP_data/phase_diagram_improved_ml_{args.ml:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
+        expected_file = f"CP_data/phase_diagram_improved_ml_{args.mq:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
         
         if args.skip_existing and os.path.exists(expected_file):
             print(f"Output file exists, skipping: {expected_file}")
@@ -395,12 +395,12 @@ def main():
         # Run calculation
         success, output_file, gamma_used, lambda4_used = run_phase_diagram(
             lambda1=args.lambda1,
-            ml=args.ml,
+            ml=args.mq,
             gamma=gamma_val,
             lambda4=lambda4_val,
-            mu_min=args.mu_min,
-            mu_max=args.mu_max,
-            mu_points=args.mu_points,
+            mu_min=args.mumin,
+            mu_max=args.mumax,
+            mu_points=args.mupoints,
             tmin=args.tmin,
             tmax=args.tmax,
             max_iterations=args.max_iterations
@@ -432,7 +432,7 @@ def main():
         
         create_combined_phase_diagram(
             successful_files, successful_params, args.parameter,
-            args.lambda1, args.ml, show_axial=not args.no_axial, show_vector=not args.no_vector
+            args.lambda1, args.mq, show_axial=not args.no_axial, show_vector=not args.no_vector
         )
         
         # Also create parameter evolution plot
@@ -444,7 +444,7 @@ def main():
         
         if len(valid_datasets) >= 2:
             create_parameter_evolution_plot(valid_datasets, successful_params, args.parameter,
-                                          args.lambda1, args.ml, 'CP_plots')
+                                          args.lambda1, args.mq, 'CP_plots')
         
         print("All plots created successfully!")
     else:

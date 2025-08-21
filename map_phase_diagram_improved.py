@@ -297,13 +297,13 @@ def generate_axial_melting_data(ml, lambda1, mu_min=0.0, mu_max=200.0, mu_points
     # Construct command to run axial_melting_scan.py
     cmd = [
         sys.executable, 'axial_melting_scan.py',
-        '--mq', str(ml),
-        '--lambda1', str(lambda1),
-        '--gamma', str(gamma),
-        '--lambda4', str(lambda4),
-        '--mu-min', str(mu_min),
-        '--mu-max', str(mu_max),
-        '--mu-points', str(mu_points),
+        '-mq', str(ml),
+        '-lambda1', str(lambda1),
+        '-gamma', str(gamma),
+        '-lambda4', str(lambda4),
+        '-mumin', str(mu_min),
+        '-mumax', str(mu_max),
+        '-mupoints', str(mu_points),
         '--no-display'  # Don't display plot, just save it
     ]
     

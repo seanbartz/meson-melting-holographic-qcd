@@ -320,8 +320,8 @@ def run_temperature_scan(t_min, t_max, t_step, mu_value=0, wi=700, wf=1800, wcou
         try:
             # Call vector_spectra.py as subprocess with frequency scan parameters
             cmd = [sys.executable, os.path.join(script_dir, 'vector_spectra.py'),
-                   '--wi', str(wi), '--wf', str(wf), '--wcount', str(wcount),
-                   '--wresolution', str(wresolution), '--T', str(temp), '--mu', str(mu_value)]
+                   '-wi', str(wi), '-wf', str(wf), '-wcount', str(wcount),
+                   '-wresolution', str(wresolution), '-T', str(temp), '-mu', str(mu_value)]
             # Append normalize flag if requested
             if normalize:
                 cmd.append('--normalize')
