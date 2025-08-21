@@ -46,8 +46,6 @@ def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_low
         'lambda1': lambda1,
         'gamma': gamma,
         'lambda4': lambda4,
-        'v3': v3,  # Include computed values too
-        'v4': v4,
         'd0_lower': d0_lower,
         'd0_upper': d0_upper,
         'num_solutions': len(sigma_values),
@@ -535,8 +533,8 @@ if __name__ == "__main__":
     T = 10
     mu = 0
     lambda1 = 7
-    ui = 1e-4
-    uf = 1 - ui
+    ui = 1e-2
+    uf = 1 - 1e-4
     
     # Calculate sigma values and chiral fields
     result = calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf)
