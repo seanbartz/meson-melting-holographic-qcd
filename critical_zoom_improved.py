@@ -376,8 +376,8 @@ def save_results(sigma_list, temps_list, mq, mu, lambda1, order, Tc, filename_pr
     filename = f"{filename_prefix}_mq{mq}_mu{mu}_lambda1{lambda1:.2f}_order{order}.pkl"
     
     # Create directory if it doesn't exist
-    os.makedirs('CP_data', exist_ok=True)
-    filepath = os.path.join('CP_data', filename)
+    os.makedirs('phase_data', exist_ok=True)
+    filepath = os.path.join('phase_data', filename)
     
     # Save to pickle
     df_all.to_pickle(filepath)

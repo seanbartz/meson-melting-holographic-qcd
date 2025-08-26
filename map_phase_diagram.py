@@ -108,8 +108,8 @@ def map_phase_diagram(mu_min, mu_max, mu_points, lambda1, ml,
     df = pd.DataFrame(results)
     
     # Ensure output directories exist
-    data_dir = 'CP_data'
-    plot_dir = 'CP_plots'
+    data_dir = 'phase_data'
+    plot_dir = 'phase_plots'
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(plot_dir, exist_ok=True)
 

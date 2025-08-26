@@ -89,8 +89,8 @@ The code automatically organizes output into structured directories:
 mu_g_440/
 ├── axial_data/          # Spectral function data files
 ├── axial_plots/         # Generated plots
-├── CP_data/             # Critical point data
-└── CP_plots/            # Critical point analysis plots
+├── phase_data/          # Critical point data
+└── phase_plots/         # Critical point analysis plots
 ```
 
 ## Dependencies

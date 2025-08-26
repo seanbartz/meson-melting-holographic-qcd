@@ -72,7 +72,7 @@ def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_low
         df_new.to_csv(filepath, mode='w', header=True, index=False)
         print(f"Created new sigma calculation log: {filepath}")
     
-    print(f"Logged sigma calculation: {len(sigma_values)} solutions found for mq={mq_input}, T={T}, mu={mu}")
+    # print(f"Logged sigma calculation: {len(sigma_values)} solutions found for mq={mq_input}, T={T}, mu={mu}")
 
 def load_sigma_data(filename='sigma_calculations.csv'):
     """

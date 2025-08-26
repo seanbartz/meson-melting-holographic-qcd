@@ -41,11 +41,11 @@ Icon
 
 # Data and Output Files (keeping structure but ignoring large datasets)
 axial_data/
-CP_data/
+phase_data/
 data/
 plots/
 axial_plots/
-CP_plots/
+phase_plots/
 batch_results/
 mu_g_440/
 mq_15/

@@ -463,4 +463,4 @@ if __name__ == '__main__':
     df_all = pd.concat(df_all_list)
 
     #pickle the data frame
-    df_all.to_pickle('CP_data/chiral_transition_mq_%i_mu_%i_lambda1_%f_order_%i.pkl' %(ml,mu,lambda1,order))
+    df_all.to_pickle('phase_data/chiral_transition_mq_%i_mu_%i_lambda1_%f_order_%i.pkl' %(ml,mu,lambda1,order))

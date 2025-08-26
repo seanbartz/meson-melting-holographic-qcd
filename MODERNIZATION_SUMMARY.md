@@ -58,8 +58,8 @@ phase_diagram_improved_mq_9.0_lambda1_7.0_gamma_-22.4_lambda4_4.2.csv
 ```
 
 ### Directory Structure
-- `CP_data/` - Critical point and phase diagram data
-- `CP_plots/` - Phase diagram plots  
+- `phase_data/` - Critical point and phase diagram data
+- `phase_plots/` - Phase diagram plots  
 - `axial_data/` - Axial meson data files
 - `axial_plots/` - Axial meson plots
 - `mu_g_440/axial_data/` - Spectral function data

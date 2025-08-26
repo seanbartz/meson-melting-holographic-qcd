@@ -23,7 +23,7 @@ This document defines the standardized file naming conventions used throughout t
 ## File Type Conventions
 
 ### Phase Diagram Files
-**Location**: `CP_data/` directory
+**Location**: `phase_data/` directory
 **Pattern**: `phase_diagram_improved_mq_{mq:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv`
 **Example**: `phase_diagram_improved_mq_9.0_lambda1_7.4_gamma_-22.4_lambda4_4.2.csv`
 
@@ -48,12 +48,12 @@ This document defines the standardized file naming conventions used throughout t
 **Example**: `axial_peaks_data_T_98.0_mu_0.0_mq_9.0_lambda1_5.3.csv`
 
 ### Combined Phase Diagram Plots
-**Location**: `CP_plots/` directory
+**Location**: `phase_plots/` directory
 **Pattern**: `combined_phase_diagram_{parameter}_scan_mq_{mq:.1f}_lambda1_{lambda1:.1f}.png`
 **Example**: `combined_phase_diagram_gamma_scan_mq_9.0_lambda1_5.0.png`
 
 ### Chiral Transition Files
-**Location**: `CP_data/` directory
+**Location**: `phase_data/` directory
 **Pattern**: `chiral_transition_mq_{mq}_mu_{mu}_lambda1_{lambda1}_gamma_{gamma}_lambda4_{lambda4}_order_{order}.pkl`
 **Example**: `chiral_transition_mq_9_mu_0_lambda1_5.000000_gamma_-22.4_lambda4_4.2_order_1.pkl`
 
@@ -100,8 +100,8 @@ filename = f"phase_diagram_improved_mq_{mq:.1f}_lambda1_{lambda1:.1f}_gamma_{gam
 
 ### Directory Structure
 Files are organized into logical subdirectories:
-- `CP_data/` - Critical point and phase diagram data
-- `CP_plots/` - Critical point and phase diagram plots
+- `phase_data/` - Critical point and phase diagram data
+- `phase_plots/` - Critical point and phase diagram plots
 - `axial_data/` - Axial meson data files
 - `axial_plots/` - Axial meson plot files
 - `mu_g_440/axial_data/` - Spectral function data

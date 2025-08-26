@@ -219,8 +219,8 @@ def map_phase_diagram_improved(mu_min, mu_max, mu_points, lambda1, ml,
     total_elapsed_time = time.time() - total_start_time
     
     # Ensure output directories exist
-    data_dir = 'CP_data'
-    plot_dir = 'CP_plots' 
+    data_dir = 'phase_data'
+    plot_dir = 'phase_plots' 
     axial_dir = 'axial_data'
     axial_plot_dir = 'axial_plots'
     
@@ -457,7 +457,7 @@ def compare_with_original(df_improved, ml, lambda1):
     """
     try:
         # Try to load original results
-        original_file = f"CP_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.1f}.csv"
+        original_file = f"phase_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.1f}.csv"
         df_original = pd.read_csv(original_file)
         
         print("\n" + "=" * 70)

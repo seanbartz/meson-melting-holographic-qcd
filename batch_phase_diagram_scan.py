@@ -73,7 +73,7 @@ def run_phase_diagram(lambda1, ml, gamma=None, lambda4=None, mu_min=0.0, mu_max=
         lambda4_used = lambda4
     
     # Expected output file name
-    output_file = f"CP_data/phase_diagram_improved_mq_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma_used:.1f}_lambda4_{lambda4_used:.1f}.csv"
+    output_file = f"phase_data/phase_diagram_improved_mq_{ml:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma_used:.1f}_lambda4_{lambda4_used:.1f}.csv"
     
     print(f"Running: {' '.join(cmd)}")
     print(f"Expected output: {output_file}")
@@ -118,7 +118,7 @@ def load_phase_diagram_data(csv_file):
         return None
 
 def create_combined_phase_diagram(data_files, parameter_values, parameter_name, lambda1, ml, 
-                                 output_dir='CP_plots', show_axial=True, show_vector=True):
+                                 output_dir='phase_plots', show_axial=True, show_vector=True):
     """
     Create a combined phase diagram plot showing multiple parameter values.
     
@@ -384,7 +384,7 @@ def main():
             lambda4_val = param_val
         
         # Check if output file already exists
-        expected_file = f"CP_data/phase_diagram_improved_mq_{args.mq:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
+        expected_file = f"phase_data/phase_diagram_improved_mq_{args.mq:.1f}_lambda1_{args.lambda1:.1f}_gamma_{gamma_val:.1f}_lambda4_{lambda4_val:.1f}.csv"
         
         if args.skip_existing and os.path.exists(expected_file):
             print(f"Output file exists, skipping: {expected_file}")
@@ -444,7 +444,7 @@ def main():
         
         if len(valid_datasets) >= 2:
             create_parameter_evolution_plot(valid_datasets, successful_params, args.parameter,
-                                          args.lambda1, args.mq, 'CP_plots')
+                                          args.lambda1, args.mq, 'phase_plots')
         
         print("All plots created successfully!")
     else:

@@ -115,7 +115,7 @@ def run_phase_diagram_batch(lambda1_values, ml, mu_min=0.0, mu_max=300.0, mu_poi
                     
                     # Move plot to batch directory if it exists and we're keeping plots
                     if keep_individual_plots:
-                        plot_file = f"CP_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.png"
+                        plot_file = f"phase_data/phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.png"
                         if os.path.exists(plot_file):
                             new_plot_file = os.path.join(batch_dir, f"phase_diagram_mq_{ml:.1f}_lambda1_{lambda1:.6f}.png")
                             os.rename(plot_file, new_plot_file)

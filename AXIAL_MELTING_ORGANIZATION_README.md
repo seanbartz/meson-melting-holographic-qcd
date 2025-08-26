@@ -39,7 +39,7 @@ Modified the script to work with the new file organization:
    - Uses new naming convention with underscores
 
 3. **Enhanced directory management**:
-   - Creates all necessary subdirectories: `CP_data/`, `CP_plots/`, `axial_data/`, `axial_plots/`
+   - Creates all necessary subdirectories: `phase_data/`, `phase_plots/`, `axial_data/`, `axial_plots/`
    - Ensures directories exist before file operations
 
 4. **Improved parameter passing**:
@@ -50,8 +50,8 @@ Modified the script to work with the new file organization:
 
 ```
 MesonMelting/
-├── CP_data/                    # Critical point data files
-├── CP_plots/                   # Critical point plot files  
+├── phase_data/                 # Critical point data files
+├── phase_plots/                # Critical point plot files  
 ├── axial_data/                 # Axial melting data files
 ├── axial_plots/                # Axial melting plot files
 ├── map_phase_diagram_improved.py

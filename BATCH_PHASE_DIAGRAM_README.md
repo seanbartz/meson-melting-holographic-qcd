@@ -52,11 +52,11 @@ python batch_phase_diagram_scan.py --parameter gamma --range -25.0 -20.0 --num-v
 ## Output Files
 
 ### Data Files
-- Individual CSV files saved in `CP_data/` directory
+- Individual CSV files saved in `phase_data/` directory
 - Naming convention: `phase_diagram_improved_mq_{mq:.1f}_lambda1_{lambda1:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv`
 
 ### Plot Files  
-All plots saved in `CP_plots/` directory:
+All plots saved in `phase_plots/` directory:
 
 1. **Combined Phase Diagram**: `combined_phase_diagram_{parameter}_scan_ml_{ml:.1f}_lambda1_{lambda1:.1f}.png`
    - Shows all critical lines on one plot with different colors for each parameter value
@@ -100,7 +100,7 @@ All plots saved in `CP_plots/` directory:
 
 - Use `--skip-existing` to avoid recalculating existing data
 - Start with fewer `--mu-points` for testing, increase for final runs
-- Monitor the `CP_data/` directory to track progress
+- Monitor the `phase_data/` directory to track progress
 - Each individual calculation can take 10-60 minutes depending on parameters
 
 ## Example Workflow
@@ -112,8 +112,8 @@ python run_batch_scan.py gamma-scan --lambda1 5.0 --ml 9.0 --mu-points 10
 # 2. Full calculation if test looks good
 python run_batch_scan.py gamma-scan --lambda1 5.0 --ml 9.0 --mu-points 25 --skip-existing
 
-# 3. Check plots in CP_plots/ directory
-ls CP_plots/
+# 3. Check plots in phase_plots/ directory
+ls phase_plots/
 
 # 4. Run lambda4 scan with same parameters
 python run_batch_scan.py lambda4-scan --lambda1 5.0 --ml 9.0 --mu-points 25 --skip-existing

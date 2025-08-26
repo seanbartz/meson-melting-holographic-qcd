@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to rename all data files in CP_data directory.
+Script to rename all data files in phase_data directory.
 
 This script:
 1. Adds underscores between parameter names and values
@@ -154,10 +154,10 @@ def rename_chiral_transition(base_name, gamma_val, lambda4_val):
     return None
 
 def main():
-    """Main function to rename all files in CP_data directory."""
+    """Main function to rename all files in phase_data directory."""
     
     # Define the directory
-    cp_data_dir = "CP_data"
+    cp_data_dir = "phase_data"
     
     # Check if directory exists
     if not os.path.exists(cp_data_dir):
