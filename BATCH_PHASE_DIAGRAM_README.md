@@ -16,23 +16,23 @@ Helper script with predefined common scan configurations.
 
 ```bash
 # Run a gamma scan from -25.0 to -20.0 with 6 points
-python run_batch_scan.py gamma-scan --lambda1 5.0 --ml 9.0
+python run_batch_scan.py gamma-scan -lambda1 5.0 -mq 9.0
 
 # Run a lambda4 scan from 3.0 to 5.5 with 6 points
-python run_batch_scan.py lambda4-scan --lambda1 5.0 --ml 9.0
+python run_batch_scan.py lambda4-scan -lambda1 5.0 -mq 9.0
 
 # Add options to standard scans
-python run_batch_scan.py gamma-scan --lambda1 5.0 --ml 9.0 --mu-points 30 --skip-existing
+python run_batch_scan.py gamma-scan -lambda1 5.0 -mq 9.0 --mu-points 30 --skip-existing
 ```
 
 ### Custom Scans
 
 ```bash
 # Custom gamma values
-python run_batch_scan.py custom --parameter gamma --values -25.0 -22.6 -20.0 --lambda1 5.0 --ml 9.0
+python run_batch_scan.py custom --parameter gamma --values -25.0 -22.6 -20.0 -lambda1 5.0 -mq 9.0
 
 # Custom lambda4 values
-python run_batch_scan.py custom --parameter lambda4 --values 3.0 4.2 5.0 5.5 --lambda1 5.0 --ml 9.0
+python run_batch_scan.py custom --parameter lambda4 --values 3.0 4.2 5.0 5.5 -lambda1 5.0 -mq 9.0
 ```
 
 ### Direct Usage of Main Script

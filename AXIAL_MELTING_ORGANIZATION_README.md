@@ -71,7 +71,7 @@ python rename_axial_melting_files.py
 
 ### Step 2: Use Updated Phase Diagram Script
 ```bash
-python map_phase_diagram_improved.py 6.0 0.5 --gamma -20.0 --lambda4 5.0
+python map_phase_diagram_improved.py -lambda1 6.0 -mq 0.5 -gamma -20.0 -lambda4 5.0
 ```
 - The script will automatically look for axial data in the correct location
 - Will generate new axial data with proper naming if needed

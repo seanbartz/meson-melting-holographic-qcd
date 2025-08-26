@@ -46,7 +46,7 @@ This research investigates the melting of mesons in a holographic model of QCD, 
 ### Basic Spectral Function Calculation
 ```bash
 # Calculate axial spectral function at T=17 MeV, μ=0 MeV
-python axial_spectra.py -T 17.0 -mu 0.0 -mq 9.0 -l1 7.438
+python axial_spectra.py -T 17.0 -mu 0.0 -mq 9.0 -lambda1 7.438
 
 # Calculate with custom frequency range and resolution
 python axial_spectra.py -T 20.0 -mu 50.0 -wi 500 -wf 3000 -wr 0.05
@@ -55,7 +55,7 @@ python axial_spectra.py -T 20.0 -mu 50.0 -wi 500 -wf 3000 -wr 0.05
 ### Phase Diagram Generation
 ```bash
 # Generate phase diagram for specific quark mass
-python map_phase_diagram_improved.py --mq 9.0 --lambda1 7.438
+python map_phase_diagram_improved.py -mq 9.0 -lambda1 7.438
 
 # Batch process multiple parameter sets
 python run_batch_scan.py
