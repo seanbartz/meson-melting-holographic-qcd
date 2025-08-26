@@ -361,9 +361,9 @@ def main():
     print(f"Parameter values: {parameter_values}")
     print(f"Fixed parameters: lambda1={args.lambda1}, mq={args.mq}")
     if args.parameter == 'gamma':
-        print(f"Fixed lambda4: {args.lambda4_fixed}")
+        print(f"Fixed lambda4: {args.lambda4fixed}")
     else:
-        print(f"Fixed gamma: {args.gamma_fixed}")
+        print(f"Fixed gamma: {args.gammafixed}")
     print("=" * 70)
     
     # Run phase diagram calculations
@@ -378,9 +378,9 @@ def main():
         # Set parameters
         if args.parameter == 'gamma':
             gamma_val = param_val
-            lambda4_val = args.lambda4_fixed
+            lambda4_val = args.lambda4fixed
         else:
-            gamma_val = args.gamma_fixed
+            gamma_val = args.gammafixed
             lambda4_val = param_val
         
         # Check if output file already exists
@@ -403,7 +403,7 @@ def main():
             mu_points=args.mupoints,
             tmin=args.tmin,
             tmax=args.tmax,
-            max_iterations=args.max_iterations
+            max_iterations=args.maxiter
         )
         
         if success and output_file and os.path.exists(output_file):
