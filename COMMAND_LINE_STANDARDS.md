@@ -82,6 +82,9 @@ python run_axial_temperatures.py -tmin 10.0 -tmax 50.0 -tstep 2.0 -mu 0.0 -mq 9.
 ### Batch Processing
 ```bash
 python batch_phase_diagrams.py -mq 9.0 -lambda1min 0.0 -lambda1max 10.0 -lambda1points 11
+
+# NEW unified batch scanner
+python batch_phase_diagram_unified.py -gammarange -25.0 -20.0 -gammapoints 6 -mq 9.0 -lambda1 5.0 -lambda4 4.2
 ```
 
 ## Migration from Old Syntax
@@ -120,6 +123,7 @@ The following files have been updated to follow these conventions:
 - `map_phase_diagram_improved.py`
 - `batch_phase_diagrams.py`
 - `batch_phase_diagram_scan.py`
+- `batch_phase_diagram_unified.py` ⭐ **NEW** - Follows all standards
 
 ### Batch Processing
 - `run_batch_scan.py`

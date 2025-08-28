@@ -29,7 +29,9 @@ This research investigates the melting of mesons in a holographic model of QCD, 
 ### Phase Diagram Tools
 - `map_phase_diagram.py` - Generate phase diagrams
 - `map_phase_diagram_improved.py` - Enhanced phase diagram generation
-- `batch_phase_diagram_scan.py` - Batch processing for phase diagrams
+- `batch_phase_diagram_unified.py` ⭐ **NEW** - Unified batch scanner for any parameter combinations
+- `batch_phase_diagram_scan.py` - Legacy batch processing for gamma/lambda4 scans
+- `batch_phase_diagrams.py` - Legacy batch processing for lambda1 scans
 
 ### Analysis and Utilities
 - `critical_zoom_improved.py` - High-resolution critical point analysis
@@ -57,7 +59,16 @@ python axial_spectra.py -T 20.0 -mu 50.0 -wi 500 -wf 3000 -wr 0.05
 # Generate phase diagram for specific quark mass
 python map_phase_diagram_improved.py -mq 9.0 -lambda1 7.438
 
-# Batch process multiple parameter sets
+# NEW: Unified batch scanner for any parameter combinations
+python batch_phase_diagram_unified.py -gammarange -25.0 -20.0 -gammapoints 6 -mq 9.0 -lambda1 5.0
+
+# NEW: Multi-parameter scan (Cartesian product) - minimal syntax
+python batch_phase_diagram_unified.py -mqvalues 9.0 12.0 -gammavalues -25.0 -22.4 -lambda1 5.0
+
+# NEW: Minimal usage (gamma=-22.4, lambda4=4.2 used as defaults)
+python batch_phase_diagram_unified.py -mq 9.0 -lambda1 5.0
+
+# Legacy batch processing
 python run_batch_scan.py
 ```
 
