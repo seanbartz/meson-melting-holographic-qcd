@@ -33,29 +33,45 @@ module load python/3.9
 export PYTHONPATH=$PYTHONPATH:$PWD
 cd $SLURM_SUBMIT_DIR
 
+# Create pre-job snapshot of shared sigma file if it exists
+if [[ -n "$SHARED_SIGMA_DIR" && -d "$SHARED_SIGMA_DIR" && -f "$SHARED_SIGMA_DIR/sigma_calculations.csv" ]]; then
+    SNAPSHOT_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    SNAPSHOT_FILE="$SHARED_SIGMA_DIR/sigma_snapshot_before_unified_${SNAPSHOT_TIMESTAMP}.csv"
+    cp "$SHARED_SIGMA_DIR/sigma_calculations.csv" "$SNAPSHOT_FILE"
+    echo "Created pre-job snapshot: $SNAPSHOT_FILE"
+    
+    # Log the snapshot creation
+    SNAPSHOT_LINES=$(wc -l < "$SNAPSHOT_FILE")
+    echo "Snapshot contains $SNAPSHOT_LINES lines of existing sigma data"
+fi
+
 echo "Starting unified batch phase diagram scan at $(date)"
 
 # Set up output directories
 # Local output (in user's directory)
 LOCAL_DATA_DIR="phase_data"
 LOCAL_PLOT_DIR="phase_plots"
+LOCAL_SIGMA_DIR="sigma_data"
 
 # Shared project output (optional - set PROJECT_DIR to enable)
 PROJECT_DIR="${PROJECT_DIR:-/net/project/QUENCH}"
 if [[ -n "$PROJECT_DIR" && -d "$PROJECT_DIR" ]]; then
     SHARED_DATA_DIR="$PROJECT_DIR/phase_data"
     SHARED_PLOT_DIR="$PROJECT_DIR/phase_plots"
+    SHARED_SIGMA_DIR="$PROJECT_DIR/sigma_data"
     
     # Create shared directories if they don't exist
-    mkdir -p "$SHARED_DATA_DIR" "$SHARED_PLOT_DIR"
+    mkdir -p "$SHARED_DATA_DIR" "$SHARED_PLOT_DIR" "$SHARED_SIGMA_DIR"
     
     echo "Shared output will be saved to:"
     echo "  Data: $SHARED_DATA_DIR"
     echo "  Plots: $SHARED_PLOT_DIR"
+    echo "  Sigma: $SHARED_SIGMA_DIR"
 else
     echo "PROJECT_DIR not set or directory doesn't exist - using local output only"
     SHARED_DATA_DIR=""
     SHARED_PLOT_DIR=""
+    SHARED_SIGMA_DIR=""
 fi
 
 # Run the unified batch scanner with your desired parameters
@@ -107,6 +123,36 @@ if [[ -n "$SHARED_DATA_DIR" && -d "$SHARED_DATA_DIR" ]]; then
     if [[ -d "$LOCAL_PLOT_DIR" ]]; then
         echo "Copying plot files: $LOCAL_PLOT_DIR/* -> $SHARED_PLOT_DIR/"
         cp -v "$LOCAL_PLOT_DIR"/*.png "$SHARED_PLOT_DIR/" 2>/dev/null || echo "No PNG files to copy"
+    fi
+    
+    # Handle sigma data files (append to shared file to avoid overwriting)
+    if [[ -d "$LOCAL_SIGMA_DIR" && -f "$LOCAL_SIGMA_DIR/sigma_calculations.csv" ]]; then
+        echo "Processing sigma calculation data..."
+        SHARED_SIGMA_FILE="$SHARED_SIGMA_DIR/sigma_calculations.csv"
+        LOCAL_SIGMA_FILE="$LOCAL_SIGMA_DIR/sigma_calculations.csv"
+        
+        if [[ -f "$SHARED_SIGMA_FILE" ]]; then
+            # Shared file exists - append data without header
+            echo "Appending to existing shared sigma file: $SHARED_SIGMA_FILE"
+            # Skip the header line (first line) when appending
+            tail -n +2 "$LOCAL_SIGMA_FILE" >> "$SHARED_SIGMA_FILE"
+        else
+            # No shared file exists - copy the entire file including header
+            echo "Creating new shared sigma file: $SHARED_SIGMA_FILE"
+            cp "$LOCAL_SIGMA_FILE" "$SHARED_SIGMA_FILE"
+        fi
+        
+        # Check if this job generated substantial sigma data before creating backup
+        LOCAL_LINES=$(wc -l < "$LOCAL_SIGMA_FILE" 2>/dev/null || echo "0")
+        if [[ $LOCAL_LINES -gt 50 ]]; then
+            # Only create backup for substantial data generation
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            BACKUP_FILE="$SHARED_SIGMA_DIR/sigma_backup_unified_${TIMESTAMP}.csv"
+            cp "$LOCAL_SIGMA_FILE" "$BACKUP_FILE"
+            echo "Backup copy saved: $BACKUP_FILE (${LOCAL_LINES} lines)"
+        else
+            echo "Skipping backup (only ${LOCAL_LINES} lines generated)"
+        fi
     fi
     
     echo "Results copied to shared directory: $PROJECT_DIR"

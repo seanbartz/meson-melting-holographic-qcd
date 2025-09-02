@@ -32,6 +32,7 @@ echo ""
 echo "Creating output subdirectories..."
 mkdir -p "$PROJECT_DIR/phase_data" && echo "✓ Created: $PROJECT_DIR/phase_data"
 mkdir -p "$PROJECT_DIR/phase_plots" && echo "✓ Created: $PROJECT_DIR/phase_plots"
+mkdir -p "$PROJECT_DIR/sigma_data" && echo "✓ Created: $PROJECT_DIR/sigma_data"
 
 # Set up environment variable
 echo ""
@@ -50,10 +51,16 @@ echo "Shared output is now configured:"
 echo "  PROJECT_DIR = $PROJECT_DIR"
 echo "  Data will be saved to: $PROJECT_DIR/phase_data/"
 echo "  Plots will be saved to: $PROJECT_DIR/phase_plots/"
+echo "  Sigma calculations will be saved to: $PROJECT_DIR/sigma_data/"
 echo ""
 echo "Usage:"
 echo "  ./submit_array_job.sh -mqvalues 9.0 12.0 15.0 -lambda1 5.0"
 echo "  (Results will be copied to shared directory automatically)"
+echo ""
+echo "Sigma data handling:"
+echo "  - Local sigma_calculations.csv files are appended to shared file"
+echo "  - Timestamped backups are created to prevent data loss"
+echo "  - File locking prevents conflicts between parallel jobs"
 echo ""
 echo "To verify setup:"
 echo "  echo \$PROJECT_DIR"
@@ -61,8 +68,9 @@ echo "  ls -la \$PROJECT_DIR"
 echo ""
 
 # Show current directory contents
-if [[ -d "$PROJECT_DIR/phase_data" ]] || [[ -d "$PROJECT_DIR/phase_plots" ]]; then
+if [[ -d "$PROJECT_DIR/phase_data" ]] || [[ -d "$PROJECT_DIR/phase_plots" ]] || [[ -d "$PROJECT_DIR/sigma_data" ]]; then
     echo "Current shared directory contents:"
     ls -la "$PROJECT_DIR/phase_data/" 2>/dev/null | head -5
     ls -la "$PROJECT_DIR/phase_plots/" 2>/dev/null | head -5
+    ls -la "$PROJECT_DIR/sigma_data/" 2>/dev/null | head -5
 fi

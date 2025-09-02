@@ -168,11 +168,21 @@ Both scripts will create results in two locations:
 ### Local Output (always created):
 - **Data**: `phase_data/phase_diagram_ml{mq}_lambda{lambda1}.csv`
 - **Plots**: `phase_plots/phase_diagram_ml{mq}_lambda{lambda1}.png`
+- **Sigma**: `sigma_data/sigma_calculations.csv` (chiral condensate calculations)
 - **Logs**: `slurm_logs/` directory with job output/error files
 
 ### Shared Project Output (if PROJECT_DIR is set):
 - **Data**: `$PROJECT_DIR/phase_data/phase_diagram_ml{mq}_lambda{lambda1}.csv`
 - **Plots**: `$PROJECT_DIR/phase_plots/phase_diagram_ml{mq}_lambda{lambda1}.png`
+- **Sigma**: `$PROJECT_DIR/sigma_data/sigma_calculations.csv` (aggregated from all jobs)
+- **Backups**: `$PROJECT_DIR/sigma_data/sigma_backup_*.csv` (only for substantial data contributions)
+- **Snapshots**: `$PROJECT_DIR/sigma_data/sigma_snapshot_*.csv` (pre-job copies of master file)
+
+**Backup Strategy:**
+- **Snapshots**: Created before each batch job starts (protects against overwrite)
+- **Backups**: Created per SLURM job/task, not per individual sigma calculation
+- Only jobs that generate >10 lines (array tasks) or >50 lines (unified jobs) create backups
+- Use `./clean_sigma_backups.sh` to remove backups and snapshots older than 7 days
 
 ### Setting Up Shared Output:
 ```bash
@@ -192,6 +202,11 @@ touch $PROJECT_DIR/test_write && rm $PROJECT_DIR/test_write
 - **Centralized**: No need to search individual directories
 - **Backup**: Results exist in both locations
 - **Permissions**: Shared directory may have better backup policies
+- **Sigma Aggregation**: All chiral condensate calculations combined in one master file
+- **Data Safety**: Timestamped backups prevent accidental data loss
+- **Pre-Job Snapshots**: Master file copied before each batch job starts
+- **Parallel Safe**: File locking prevents conflicts between simultaneous jobs
+- **Smart Cleanup**: Remove old backups/snapshots while preserving recent ones
 
 ## Common Commands
 
@@ -212,6 +227,22 @@ scontrol show partition general    # Detailed partition info
 ```bash
 scancel JOBID_[1-10]              # Cancel specific array tasks
 scancel JOBID                     # Cancel entire array
+```
+
+### Sigma Data Maintenance
+```bash
+# Check sigma data status
+ls -la $PROJECT_DIR/sigma_data/
+
+# Clean old backup and snapshot files (older than 7 days)
+./clean_sigma_backups.sh
+
+# Clean files older than specific days
+./clean_sigma_backups.sh /net/project/QUENCH 3
+
+# Check file sizes and line counts
+wc -l $PROJECT_DIR/sigma_data/*.csv
+du -h $PROJECT_DIR/sigma_data/
 ```
 
 ## Troubleshooting
