@@ -28,6 +28,35 @@ git clone git@github.com:seanbartz/meson-melting-holographic-qcd.git
 cd meson-melting-holographic-qcd
 ```
 
+### 3. Configure Shared Output (Optional)
+To save results to the shared project directory `/net/project/QUENCH`:
+
+**Option A: Use the setup script (recommended):**
+```bash
+./setup_shared_output.sh
+# This will check permissions, create directories, and configure environment
+```
+
+**Option B: Manual setup:**
+```bash
+# Set the PROJECT_DIR environment variable before running jobs
+export PROJECT_DIR="/net/project/QUENCH"
+
+# Or set it in your ~/.bashrc for persistence:
+echo 'export PROJECT_DIR="/net/project/QUENCH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Create directories if needed:
+mkdir -p "$PROJECT_DIR/phase_data" "$PROJECT_DIR/phase_plots"
+```
+
+When `PROJECT_DIR` is set, the scripts will:
+- Create `phase_data/` and `phase_plots/` directories in the shared location
+- Copy all results there after local processing
+- Maintain local copies in your individual directory
+
+**For your student:** They can run the same setup in their own directory clone, and all results will be automatically shared.
+
 ## Option 1: Single Unified Job
 
 Use `slurm_unified_batch.sh` when you want all calculations in one job:
@@ -134,10 +163,35 @@ The job array script accepts the same parameters as `batch_phase_diagram_unified
 
 ## Output Organization
 
-Both scripts will create:
+Both scripts will create results in two locations:
+
+### Local Output (always created):
 - **Data**: `phase_data/phase_diagram_ml{mq}_lambda{lambda1}.csv`
 - **Plots**: `phase_plots/phase_diagram_ml{mq}_lambda{lambda1}.png`
 - **Logs**: `slurm_logs/` directory with job output/error files
+
+### Shared Project Output (if PROJECT_DIR is set):
+- **Data**: `$PROJECT_DIR/phase_data/phase_diagram_ml{mq}_lambda{lambda1}.csv`
+- **Plots**: `$PROJECT_DIR/phase_plots/phase_diagram_ml{mq}_lambda{lambda1}.png`
+
+### Setting Up Shared Output:
+```bash
+# For QUENCH project (recommended):
+export PROJECT_DIR="/net/project/QUENCH"
+
+# Check if directory exists and is writable:
+ls -la $PROJECT_DIR
+touch $PROJECT_DIR/test_write && rm $PROJECT_DIR/test_write
+
+# Submit jobs (will now copy to shared directory):
+./submit_array_job.sh -mqvalues 9.0 12.0 15.0 -lambda1 5.0
+```
+
+### Benefits of Shared Output:
+- **Collaboration**: All team members can access results
+- **Centralized**: No need to search individual directories
+- **Backup**: Results exist in both locations
+- **Permissions**: Shared directory may have better backup policies
 
 ## Common Commands
 

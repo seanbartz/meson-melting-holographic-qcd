@@ -178,6 +178,29 @@ module load python/3.9
 export PYTHONPATH=$PYTHONPATH:$PWD
 cd $SLURM_SUBMIT_DIR
 
+# Set up output directories
+# Local output (in user's directory)
+LOCAL_DATA_DIR="phase_data"
+LOCAL_PLOT_DIR="phase_plots"
+
+# Shared project output (optional - set PROJECT_DIR to enable)
+PROJECT_DIR="${PROJECT_DIR:-/net/project/QUENCH}"
+if [[ -n "$PROJECT_DIR" && -d "$PROJECT_DIR" ]]; then
+    SHARED_DATA_DIR="$PROJECT_DIR/phase_data"
+    SHARED_PLOT_DIR="$PROJECT_DIR/phase_plots"
+    
+    # Create shared directories if they don't exist
+    mkdir -p "$SHARED_DATA_DIR" "$SHARED_PLOT_DIR"
+    
+    echo "Shared output configured:"
+    echo "  Data: $SHARED_DATA_DIR"
+    echo "  Plots: $SHARED_PLOT_DIR"
+else
+    echo "PROJECT_DIR not set or directory doesn't exist - using local output only"
+    SHARED_DATA_DIR=""
+    SHARED_PLOT_DIR=""
+fi
+
 echo "Starting batch_phase_diagram_scan.py at $(date)"
 
 # Run the batch phase diagram scan for this parameter combination
@@ -196,9 +219,37 @@ python batch_phase_diagram_scan.py \
 
 EXIT_CODE=$?
 
+# Copy results to shared directory if configured
+if [[ -n "$SHARED_DATA_DIR" && -d "$SHARED_DATA_DIR" ]]; then
+    echo "Copying results to shared project directory..."
+    
+    # Copy data files (CSV files from phase_data/)
+    if [[ -d "$LOCAL_DATA_DIR" ]]; then
+        for csv_file in "$LOCAL_DATA_DIR"/*.csv; do
+            if [[ -f "$csv_file" ]]; then
+                echo "Copying: $(basename "$csv_file") -> $SHARED_DATA_DIR/"
+                cp -v "$csv_file" "$SHARED_DATA_DIR/"
+            fi
+        done
+    fi
+    
+    # Copy plot files (PNG files from phase_plots/)
+    if [[ -d "$LOCAL_PLOT_DIR" ]]; then
+        for png_file in "$LOCAL_PLOT_DIR"/*.png; do
+            if [[ -f "$png_file" ]]; then
+                echo "Copying: $(basename "$png_file") -> $SHARED_PLOT_DIR/"  
+                cp -v "$png_file" "$SHARED_PLOT_DIR/"
+            fi
+        done
+    fi
+fi
+
 if [ $EXIT_CODE -eq 0 ]; then
     echo "SUCCESS: Task $TASK_ID completed at $(date)"
     echo "Parameters: mq=$MQ, lambda1=$LAMBDA1, gamma=$GAMMA"
+    if [[ -n "$SHARED_DATA_DIR" ]]; then
+        echo "Results copied to shared directory: $PROJECT_DIR"
+    fi
 else
     echo "ERROR: Task $TASK_ID failed with exit code $EXIT_CODE at $(date)"
 fi

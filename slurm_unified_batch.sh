@@ -35,6 +35,29 @@ cd $SLURM_SUBMIT_DIR
 
 echo "Starting unified batch phase diagram scan at $(date)"
 
+# Set up output directories
+# Local output (in user's directory)
+LOCAL_DATA_DIR="phase_data"
+LOCAL_PLOT_DIR="phase_plots"
+
+# Shared project output (optional - set PROJECT_DIR to enable)
+PROJECT_DIR="${PROJECT_DIR:-/net/project/QUENCH}"
+if [[ -n "$PROJECT_DIR" && -d "$PROJECT_DIR" ]]; then
+    SHARED_DATA_DIR="$PROJECT_DIR/phase_data"
+    SHARED_PLOT_DIR="$PROJECT_DIR/phase_plots"
+    
+    # Create shared directories if they don't exist
+    mkdir -p "$SHARED_DATA_DIR" "$SHARED_PLOT_DIR"
+    
+    echo "Shared output will be saved to:"
+    echo "  Data: $SHARED_DATA_DIR"
+    echo "  Plots: $SHARED_PLOT_DIR"
+else
+    echo "PROJECT_DIR not set or directory doesn't exist - using local output only"
+    SHARED_DATA_DIR=""
+    SHARED_PLOT_DIR=""
+fi
+
 # Run the unified batch scanner with your desired parameters
 # MODIFY THESE PARAMETERS AS NEEDED:
 
@@ -48,7 +71,9 @@ python batch_phase_diagram_unified.py \
     -mupoints 20 \
     -tmin 80.0 \
     -tmax 210.0 \
-    -maxiter 10
+    -maxiter 10 \
+    --output-dir "$LOCAL_DATA_DIR" \
+    --plot-dir "$LOCAL_PLOT_DIR"
 
 # Alternative examples (comment out the one above and use one of these):
 
@@ -68,9 +93,31 @@ python batch_phase_diagram_unified.py \
 
 EXIT_CODE=$?
 
+# Copy results to shared directory if configured
+if [[ -n "$SHARED_DATA_DIR" && -d "$SHARED_DATA_DIR" ]]; then
+    echo "Copying results to shared project directory..."
+    
+    # Copy data files
+    if [[ -d "$LOCAL_DATA_DIR" ]]; then
+        echo "Copying data files: $LOCAL_DATA_DIR/* -> $SHARED_DATA_DIR/"
+        cp -v "$LOCAL_DATA_DIR"/*.csv "$SHARED_DATA_DIR/" 2>/dev/null || echo "No CSV files to copy"
+    fi
+    
+    # Copy plot files  
+    if [[ -d "$LOCAL_PLOT_DIR" ]]; then
+        echo "Copying plot files: $LOCAL_PLOT_DIR/* -> $SHARED_PLOT_DIR/"
+        cp -v "$LOCAL_PLOT_DIR"/*.png "$SHARED_PLOT_DIR/" 2>/dev/null || echo "No PNG files to copy"
+    fi
+    
+    echo "Results copied to shared directory: $PROJECT_DIR"
+fi
+
 if [ $EXIT_CODE -eq 0 ]; then
     echo "SUCCESS: Unified batch scan completed at $(date)"
     echo "Check phase_data/ for CSV files and phase_plots/ for combined plots"
+    if [[ -n "$SHARED_DATA_DIR" ]]; then
+        echo "Shared copies available at: $PROJECT_DIR"
+    fi
 else
     echo "ERROR: Unified batch scan failed with exit code $EXIT_CODE at $(date)"
 fi
