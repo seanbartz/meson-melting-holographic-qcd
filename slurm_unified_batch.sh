@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=unified_phase_scan
-#SBATCH --partition=general
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -27,7 +27,7 @@ echo "Submit directory: $SLURM_SUBMIT_DIR"
 echo "============================"
 
 # Load required modules (adjust for obsidian)
-module load python/3.9
+# Python 3.6.8 available system-wide
 
 # Set up environment
 export PYTHONPATH=$PYTHONPATH:$PWD

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=batch_phase_array
-#SBATCH --partition=general
+#SBATCH --partition=all
 #SBATCH --array=1-N%3
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -172,7 +172,7 @@ echo "  tmax = $TMAX"
 echo "  maxiter = $MAXITER"
 
 # Load modules
-module load python/3.9
+# Python 3.6.8 available system-wide
 
 # Set environment and change to submit directory
 export PYTHONPATH=$PYTHONPATH:$PWD
