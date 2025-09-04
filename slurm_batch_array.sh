@@ -47,8 +47,13 @@ parse_parameter_list() {
             found=true
             ((i++))
             # Collect values until next parameter or end
-            while [ $i -le $# ] && [[ "${!i}" != -* ]]; do
-                values+=("${!i}")
+            while [ $i -le $# ]; do
+                next_arg="${!i}"
+                # Stop if we hit a parameter flag (but allow negative numbers)
+                if [[ "$next_arg" =~ ^-[a-zA-Z] ]]; then
+                    break
+                fi
+                values+=("$next_arg")
                 ((i++))
             done
             break
@@ -56,8 +61,12 @@ parse_parameter_list() {
             found=true
             ((i++))
             # For single parameter, only take one value and stop
-            if [ $i -le $# ] && [[ "${!i}" != -* ]]; then
-                values+=("${!i}")
+            if [ $i -le $# ]; then
+                next_arg="${!i}"
+                # Allow negative numbers (check if it's a number, not a parameter flag)
+                if [[ "$next_arg" =~ ^-?[0-9]+\.?[0-9]*$ ]] || [[ "$next_arg" != -* ]]; then
+                    values+=("$next_arg")
+                fi
             fi
             break
         else
