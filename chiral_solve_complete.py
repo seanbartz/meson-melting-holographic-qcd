@@ -8,23 +8,93 @@ from joblib import Parallel, delayed
 import pandas as pd
 import os
 from datetime import datetime
+import fcntl  # For file locking
 
 # Constants from the paper
 v4 = 4.2
 v3 = -22.6/(6*np.sqrt(2))
 
-def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
-                         v3, v4, sigma_values, d0_values, filename='sigma_calculations.csv'):
+def check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
+                             v3_param, v4_param, tolerance=1e-10, filename='sigma_calculations.csv'):
     """
-    Log sigma calculation results to a CSV file for machine learning purposes.
+    Check if this exact calculation (parameters + results) already exists in the CSV.
     
     Parameters:
     -----------
-    All input parameters plus results
+    All calculation parameters (v3_param and v4_param are the actual values passed, not globals)
+    tolerance : float
+        Tolerance for floating point comparison
+    filename : str
+        CSV file to check
+        
+    Returns:
+    --------
+    bool
+        True if exact calculation already exists, False otherwise
     """
-    # Convert v3, v4 back to gamma, lambda4 for logging
-    gamma = v3 * 6 * np.sqrt(2)
-    lambda4 = v4
+    data_dir = 'sigma_data'
+    filepath = os.path.join(data_dir, filename)
+    
+    if not os.path.exists(filepath):
+        return False
+    
+    try:
+        df = pd.read_csv(filepath)
+        if df.empty:
+            return False
+        
+        # Convert v3_param, v4_param back to gamma, lambda4 for comparison with CSV
+        gamma_param = v3_param * 6 * np.sqrt(2)
+        lambda4_param = v4_param
+        
+        # Create boolean mask for matching rows
+        mask = (
+            (np.abs(df['T'] - T) < tolerance) &
+            (np.abs(df['mu'] - mu) < tolerance) &
+            (np.abs(df['ui'] - ui) < tolerance) &
+            (np.abs(df['uf'] - uf) < tolerance) &
+            (np.abs(df['mq'] - mq_input) < tolerance) &
+            (np.abs(df['mq_tolerance'] - mq_tolerance) < tolerance) &
+            (np.abs(df['lambda1'] - lambda1) < tolerance) &
+            (np.abs(df['gamma'] - gamma_param) < tolerance) &
+            (np.abs(df['lambda4'] - lambda4_param) < tolerance) &
+            (np.abs(df['d0_lower'] - d0_lower) < tolerance) &
+            (np.abs(df['d0_upper'] - d0_upper) < tolerance)
+        )
+        
+        # Check if any rows match all parameters
+        matching_rows = df[mask]
+        if len(matching_rows) > 0:
+            print(f"Found {len(matching_rows)} existing calculation(s) with identical parameters")
+            print(f"  Using v3={v3_param:.6f}, v4={v4_param:.1f} (gamma={gamma_param:.1f}, lambda4={lambda4_param:.1f})")
+            print(f"  Most recent: {matching_rows['timestamp'].max()}")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Warning: Could not check existing calculations: {e}")
+        return False
+
+def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
+                         v3_param, v4_param, sigma_values, d0_values, filename='sigma_calculations.csv'):
+    """
+    Log sigma calculation results to a CSV file with file locking and duplicate checking.
+    
+    Parameters:
+    -----------
+    All input parameters plus results (v3_param and v4_param are the actual values used)
+    """
+    # Convert v3_param, v4_param back to gamma, lambda4 for logging
+    gamma_param = v3_param * 6 * np.sqrt(2)
+    lambda4_param = v4_param
+    
+    # Check if this exact calculation already exists
+    if check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, 
+                                 d0_lower, d0_upper, v3_param, v4_param, filename=filename):
+        print(f"Skipping duplicate calculation for mq={mq_input}, T={T}, mu={mu}, lambda1={lambda1}")
+        print(f"  With v3={v3_param:.6f}, v4={v4_param:.1f}")
+        return
     
     # Ensure we have exactly 3 sigma values (pad with NaN if needed)
     sigma_padded = np.full(3, np.nan)
@@ -44,8 +114,8 @@ def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_low
         'mq': mq_input,
         'mq_tolerance': mq_tolerance,
         'lambda1': lambda1,
-        'gamma': gamma,
-        'lambda4': lambda4,
+        'gamma': gamma_param,
+        'lambda4': lambda4_param,
         'd0_lower': d0_lower,
         'd0_upper': d0_upper,
         'num_solutions': len(sigma_values),
@@ -65,14 +135,38 @@ def log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_low
     os.makedirs(data_dir, exist_ok=True)
     filepath = os.path.join(data_dir, filename)
     
-    # Append to existing file or create new one
-    if os.path.exists(filepath):
-        df_new.to_csv(filepath, mode='a', header=False, index=False)
-    else:
-        df_new.to_csv(filepath, mode='w', header=True, index=False)
-        print(f"Created new sigma calculation log: {filepath}")
+    # Use file locking to prevent concurrent write issues
+    try:
+        with open(filepath, 'a', newline='') as f:
+            # Acquire exclusive lock
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            
+            # Check if file is empty (needs header)
+            file_was_empty = f.tell() == 0
+            
+            # Write data with proper header handling
+            if file_was_empty:
+                df_new.to_csv(f, header=True, index=False)
+                print(f"Created new sigma calculation log: {filepath}")
+            else:
+                df_new.to_csv(f, header=False, index=False)
+            
+            # Flush to ensure data is written
+            f.flush()
+            os.fsync(f.fileno())
+            
+            # Lock is automatically released when file closes
+            
+    except Exception as e:
+        print(f"Warning: Could not log sigma calculation: {e}")
+        # Fallback to old method without locking
+        if os.path.exists(filepath):
+            df_new.to_csv(filepath, mode='a', header=False, index=False)
+        else:
+            df_new.to_csv(filepath, mode='w', header=True, index=False)
     
-    # print(f"Logged sigma calculation: {len(sigma_values)} solutions found for mq={mq_input}, T={T}, mu={mu}")
+    print(f"Logged sigma calculation: {len(sigma_values)} solutions found")
+    print(f"  Parameters: mq={mq_input}, T={T}, mu={mu}, lambda1={lambda1}, v3={v3_param:.6f}, v4={v4_param:.1f}")
 
 def load_sigma_data(filename='sigma_calculations.csv'):
     """
@@ -451,6 +545,15 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
     result : dict
         Dictionary containing sigma values, chiral fields, and derivatives
     """
+    
+    # Check if we already have this calculation (avoid duplicate logging)
+    if log_results:
+        existing_calculation = check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, v3, v4)
+        if existing_calculation:
+            print(f"Found existing calculation for mq={mq_input}, T={T}, mu={mu}, lambda1={lambda1}")
+            print("Recalculating chiral fields (not saved in CSV) but skipping duplicate logging...")
+            log_results = False  # Skip logging since parameters already exist
+    
     # Find the sigma values and d0 approximations
     sigma_values, d0_max, d0_min, d0_approx_list = sigma_of_T(
         mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, uf, v3, v4
@@ -465,12 +568,13 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
     valid_sigma_values = [sigma_values[i] for i in non_zero_indices]
     valid_d0_approx_list = [d0_approx_list[i] for i in non_zero_indices]
     
-    # Log the results if requested
+    # Log the results if requested (and not already existing)
     if log_results:
         log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper,
                             v3, v4, valid_sigma_values, valid_d0_approx_list)
     
     # For each d0, get the corresponding chiral field and derivative
+    # (These are always calculated fresh since they're not stored in CSV)
     chiral_fields = []
     chiral_derivatives = []
     u_values = None
