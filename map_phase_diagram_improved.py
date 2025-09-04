@@ -508,7 +508,7 @@ def main():
     # Chemical potential range
     parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
     parser.add_argument('-mumax', type=float, default=400.0, help='Maximum chemical potential in MeV (default: 400.0)')
-    parser.add_argument('-mupoints', type=int, default=20, help='Number of mu points to sample (default: 20)')
+    parser.add_argument('-mupoints', type=int, default=21, help='Number of mu points to sample (default: 21)')
     
     # Temperature search parameters
     parser.add_argument('-tmin', type=float, default=80.0, help='Minimum temperature for search in MeV (default: 80.0)')
