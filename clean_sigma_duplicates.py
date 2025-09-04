@@ -109,58 +109,63 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     initial_len = len(df)
     df_clean_structure = df.dropna(how='all')  # Remove completely empty rows
     
-    # Check for rows with inconsistent data (e.g., string in numeric columns)
-    malformed_rows = 0
-    clean_indices = []
+    # Use vectorized operations for much faster validation
+    print("Validating data structure (vectorized approach)...")
     
-    for idx, row in df_clean_structure.iterrows():
-        try:
-            # Basic sanity check: ensure row has proper data structure
-            is_valid = True
-            
-            # Check critical columns that must have values (not sigma2, sigma3, d0_2, d0_3)
-            required_cols = ['T', 'mu', 'ui', 'uf', 'mq', 'mq_tolerance', 'lambda1', 'num_solutions']
-            
-            for col in required_cols:
-                if col in df_clean_structure.columns:
-                    val = row[col]
-                    if pd.isna(val) or val == '' or str(val).strip() == '':
-                        is_valid = False
-                        break
-                        
-            # For sigma/d0 columns, allow empty values (when num_solutions < 3)
-            # But if they exist, they should be numeric or empty
-            optional_numeric_cols = ['sigma1', 'sigma2', 'sigma3', 'd0_1', 'd0_2', 'd0_3']
-            for col in optional_numeric_cols:
-                if col in df_clean_structure.columns:
-                    val = row[col]
-                    if val != '' and not pd.isna(val):
-                        try:
-                            float(val)  # Test if it's a valid number
-                        except (ValueError, TypeError):
-                            is_valid = False
-                            break
-                        
-            if is_valid:
-                clean_indices.append(idx)
-            else:
-                malformed_rows += 1
-                
-        except Exception as e:
-            malformed_rows += 1
-            continue
+    # Check required columns that must have values
+    required_cols = ['T', 'mu', 'ui', 'uf', 'mq', 'mq_tolerance', 'lambda1', 'num_solutions']
+    required_cols = [col for col in required_cols if col in df_clean_structure.columns]
+    
+    # Create boolean mask for valid rows
+    valid_mask = pd.Series(True, index=df_clean_structure.index)
+    
+    # Check required columns for missing/empty values
+    for col in required_cols:
+        col_valid = ~(df_clean_structure[col].isna() | 
+                     (df_clean_structure[col].astype(str).str.strip() == ''))
+        valid_mask = valid_mask & col_valid
+        invalid_count = (~col_valid).sum()
+        if invalid_count > 0:
+            print(f"  Found {invalid_count} rows with missing/empty '{col}'")
+    
+    # For optional numeric columns, check data types but allow empty values
+    optional_numeric_cols = ['sigma1', 'sigma2', 'sigma3', 'd0_1', 'd0_2', 'd0_3']
+    optional_numeric_cols = [col for col in optional_numeric_cols if col in df_clean_structure.columns]
+    
+    for col in optional_numeric_cols:
+        # Only validate non-empty values
+        non_empty = ~(df_clean_structure[col].isna() | 
+                     (df_clean_structure[col].astype(str).str.strip() == ''))
+        
+        if non_empty.any():
+            # Try to convert non-empty values to numeric
+            try:
+                pd.to_numeric(df_clean_structure.loc[non_empty, col], errors='raise')
+            except (ValueError, TypeError):
+                # If conversion fails, find which rows are problematic
+                numeric_valid = pd.to_numeric(df_clean_structure[col], errors='coerce').notna()
+                # Only invalid if it's non-empty AND non-numeric
+                col_invalid = non_empty & ~numeric_valid
+                invalid_count = col_invalid.sum()
+                if invalid_count > 0:
+                    print(f"  Found {invalid_count} rows with non-numeric '{col}'")
+                    valid_mask = valid_mask & ~col_invalid
+    
+    # Apply the mask to filter out invalid rows
+    malformed_rows = (~valid_mask).sum()
+    df = df_clean_structure[valid_mask]
     
     if malformed_rows > 0:
         print(f"Filtering out {malformed_rows} malformed/incomplete rows")
         print("  (Rows missing required physics parameters or with invalid data types)")
-        df = df_clean_structure.loc[clean_indices]
         print(f"After structure cleaning: {len(df)} entries")
     else:
-        df = df_clean_structure
         if len(df) < initial_len:
             empty_removed = initial_len - len(df)
             print(f"Removed {empty_removed} completely empty rows")
             print(f"After structure cleaning: {len(df)} entries")
+        else:
+            print("All rows passed structure validation")
         
     print("Note: Empty sigma2/sigma3/d0_2/d0_3 fields are valid (when num_solutions < 3)")
     
