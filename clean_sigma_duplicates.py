@@ -101,6 +101,51 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     original_count = len(df)
     print(f"Original dataset: {original_count} entries")
     
+    # Additional check: ensure all rows have the expected number of columns
+    expected_cols = len(df.columns)
+    print(f"Expected columns: {expected_cols}")
+    
+    # Filter out any rows with NaN values or wrong structure (safety check)
+    initial_len = len(df)
+    df_clean_structure = df.dropna(how='all')  # Remove completely empty rows
+    
+    # Check for rows with inconsistent data (e.g., string in numeric columns)
+    malformed_rows = 0
+    clean_indices = []
+    
+    for idx, row in df_clean_structure.iterrows():
+        try:
+            # Basic sanity check: ensure row has proper data types where expected
+            is_valid = True
+            
+            # Check if numeric columns contain reasonable values
+            for col in df_clean_structure.columns:
+                if col not in ['timestamp', 'task_id', 'job_id', 'node']:
+                    val = row[col]
+                    if pd.isna(val) or val == '' or str(val).strip() == '':
+                        is_valid = False
+                        break
+                        
+            if is_valid:
+                clean_indices.append(idx)
+            else:
+                malformed_rows += 1
+                
+        except Exception as e:
+            malformed_rows += 1
+            continue
+    
+    if malformed_rows > 0:
+        print(f"Filtering out {malformed_rows} malformed/incomplete rows")
+        df = df_clean_structure.loc[clean_indices]
+        print(f"After structure cleaning: {len(df)} entries")
+    else:
+        df = df_clean_structure
+        if len(df) < initial_len:
+            empty_removed = initial_len - len(df)
+            print(f"Removed {empty_removed} completely empty rows")
+            print(f"After structure cleaning: {len(df)} entries")
+    
     # Create backup of original file before cleaning
     if create_backup:
         input_path = Path(input_file)
@@ -139,10 +184,14 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     df_cleaned = df_rounded.drop_duplicates(subset=physics_cols, keep='first')
     
     cleaned_count = len(df_cleaned)
-    duplicates_removed = original_count - cleaned_count
+    structure_removed = original_count - len(df)  # Malformed/empty rows removed
+    duplicates_removed = len(df) - cleaned_count  # Duplicates among valid rows
+    total_removed = original_count - cleaned_count
     
     print(f"Cleaned dataset: {cleaned_count} entries")
-    print(f"Duplicates removed: {duplicates_removed} ({100*duplicates_removed/original_count:.1f}%)")
+    print(f"Structure issues removed: {structure_removed}")
+    print(f"Duplicates removed: {duplicates_removed}")
+    print(f"Total removed: {total_removed} ({100*total_removed/original_count:.1f}%)")
     
     # Generate output filename if not provided
     if output_file is None:
@@ -162,16 +211,17 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
         f.write(f"Output file: {output_file}\n")
         f.write(f"Floating point tolerance: {tolerance}\n\n")
         f.write(f"Original entries: {original_count}\n")
-        f.write(f"Cleaned entries: {cleaned_count}\n") 
+        f.write(f"Structure issues removed: {structure_removed}\n")
         f.write(f"Duplicates removed: {duplicates_removed}\n")
-        f.write(f"Compression ratio: {100*duplicates_removed/original_count:.1f}%\n\n")
+        f.write(f"Cleaned entries: {cleaned_count}\n") 
+        f.write(f"Total compression: {100*total_removed/original_count:.1f}%\n\n")
         f.write(f"Physics parameter columns used for deduplication:\n")
         for col in physics_cols:
             f.write(f"  - {col}\n")
     
     print(f"Summary report saved to {report_file}")
     
-    return original_count, cleaned_count, duplicates_removed
+    return original_count, cleaned_count, total_removed
 
 def main():
     parser = argparse.ArgumentParser(
