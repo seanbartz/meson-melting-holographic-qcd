@@ -228,10 +228,10 @@ else
     SHARED_SIGMA_DIR=""
 fi
 
-echo "Starting batch_phase_diagram_scan.py at $(date)"
+echo "Starting map_phase_diagram_improved.py at $(date)"
 
-# Run the batch phase diagram scan for this parameter combination
-python3 batch_phase_diagram_scan.py \
+# Run map_phase_diagram_improved.py directly for this parameter combination
+python3 map_phase_diagram_improved.py \
     -mq $MQ \
     -lambda1 $LAMBDA1 \
     -gamma $GAMMA \
@@ -241,8 +241,8 @@ python3 batch_phase_diagram_scan.py \
     -mupoints $MUPOINTS \
     -tmin $TMIN \
     -tmax $TMAX \
-    -maxiter $MAXITER \
-    --make-combined-plot
+    -maxiterations $MAXITER \
+    --no-display
 
 EXIT_CODE=$?
 
