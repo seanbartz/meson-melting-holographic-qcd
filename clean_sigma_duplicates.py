@@ -53,13 +53,50 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     print(f"Loading data from {input_file}...")
     
     try:
-        df = pd.read_csv(input_file)
+        # Try to read CSV with error handling for malformed lines
+        try:
+            # First try modern pandas approach
+            df = pd.read_csv(input_file, on_bad_lines='skip')
+        except TypeError:
+            # Fallback for older pandas versions
+            df = pd.read_csv(input_file, error_bad_lines=False, warn_bad_lines=True)
     except FileNotFoundError:
         print(f"Error: File {input_file} not found")
         return None
     except Exception as e:
         print(f"Error reading {input_file}: {e}")
-        return None
+        print("This might be due to malformed CSV data.")
+        print("Attempting manual line-by-line parsing...")
+        
+        # Last resort: manual parsing of CSV
+        try:
+            import csv
+            good_lines = []
+            expected_fields = None
+            
+            with open(input_file, 'r') as f:
+                reader = csv.reader(f)
+                header = next(reader)
+                expected_fields = len(header)
+                good_lines.append(header)
+                
+                for line_num, row in enumerate(reader, start=2):
+                    if len(row) == expected_fields:
+                        good_lines.append(row)
+                    else:
+                        print(f"Skipping malformed line {line_num}: expected {expected_fields} fields, got {len(row)}")
+            
+            # Convert to DataFrame
+            if len(good_lines) > 1:
+                df = pd.DataFrame(good_lines[1:], columns=good_lines[0])
+                print(f"Successfully parsed {len(df)} valid lines out of potentially more")
+            else:
+                print("No valid data lines found")
+                return None
+                
+        except Exception as e2:
+            print(f"Manual parsing also failed: {e2}")
+            return None
     
     original_count = len(df)
     print(f"Original dataset: {original_count} entries")
@@ -194,7 +231,11 @@ def main():
         # In preview mode, use a temporary output file and don't create backup
         result = clean_sigma_duplicates(args.input_file, '/tmp/preview_output.csv', 
                                       args.tolerance, create_backup=False)
-        Path('/tmp/preview_output.csv').unlink(missing_ok=True)  # Clean up temp file
+        # Clean up temp file (compatible with older Python versions)
+        try:
+            Path('/tmp/preview_output.csv').unlink()
+        except FileNotFoundError:
+            pass
     else:
         result = clean_sigma_duplicates(args.input_file, args.output_file, 
                                       args.tolerance, create_backup=not args.no_backup)
