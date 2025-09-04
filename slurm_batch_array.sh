@@ -1,6 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=batch_phase_array
-#SBATCH --partition=all
+#SBATCH --partition    # Return the values as a space-separated string
+    echo "${values[*]}"  # Use [*] to join with spaces instead of [n] for newlines
+}l
 #SBATCH --array=1-N%10
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -67,7 +69,7 @@ parse_parameter_list() {
     done
     
     # Return the values as a space-separated string
-    printf '%s\n' "${values[@]}"
+    printf '%s ' "${values[@]}"
 }
 
 # Parse all parameters from command line
@@ -131,10 +133,9 @@ GAMMA=${GAMMA_VALUES[$GAMMA_IDX]}
 LAMBDA4=${LAMBDA4_VALUES[$LAMBDA4_IDX]}
 
 echo "Task $TASK_ID parameters:"
-echo "  mq = $MQ"
-echo "  lambda1 = $LAMBDA1"
-echo "  gamma = $GAMMA"
-echo "  lambda4 = $LAMBDA4"
+echo "  Array sizes: MQ=${#MQ_VALUES[@]}, LAMBDA1=${#LAMBDA1_VALUES[@]}, GAMMA=${#GAMMA_VALUES[@]}, LAMBDA4=${#LAMBDA4_VALUES[@]}"
+echo "  Indices: MQ_IDX=$MQ_IDX, LAMBDA1_IDX=$LAMBDA1_IDX, GAMMA_IDX=$GAMMA_IDX, LAMBDA4_IDX=$LAMBDA4_IDX"
+echo "  Values: mq=$MQ, lambda1=$LAMBDA1, gamma=$GAMMA, lambda4=$LAMBDA4"
 
 # Parse additional command line parameters for physical parameters
 parse_single_parameter() {
