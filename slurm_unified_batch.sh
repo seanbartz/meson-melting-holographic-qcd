@@ -27,7 +27,9 @@ echo "Submit directory: $SLURM_SUBMIT_DIR"
 echo "============================"
 
 # Load required modules (adjust for obsidian)
-# Python 3.6.8 available system-wide
+# Note: Python3 is available at /usr/bin/python3 - no module load needed
+# module load python/3.9  # Not available on obsidian
+# module load numpy scipy matplotlib pandas
 
 # Set up environment
 export PYTHONPATH=$PYTHONPATH:$PWD
@@ -77,7 +79,7 @@ fi
 # Run the unified batch scanner with your desired parameters
 # MODIFY THESE PARAMETERS AS NEEDED:
 
-python batch_phase_diagram_unified.py \
+python3 batch_phase_diagram_unified.py \
     -mqvalues 9.0 12.0 15.0 \
     -lambda1range 3.0 7.0 -lambda1points 5 \
     -gamma -22.4 \

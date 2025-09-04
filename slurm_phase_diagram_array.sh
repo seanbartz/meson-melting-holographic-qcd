@@ -20,8 +20,8 @@
 mkdir -p slurm_logs
 
 # Load required modules (adjust for obsidian's specific environment)
-# Check available modules with: module avail
-module load python/3.9
+# Note: Python3 is available at /usr/bin/python3 - no module load needed
+# module load python/3.9  # Not available on obsidian
 # module load numpy scipy matplotlib pandas
 
 # Set up environment
@@ -94,9 +94,9 @@ fi
 
 # Run single parameter combination
 echo "Starting calculation at $(date)"
-echo "Command: python map_phase_diagram_improved.py -mq $MQ -lambda1 $LAMBDA1 -gamma $GAMMA -lambda4 $LAMBDA4"
+echo "Command: python3 map_phase_diagram_improved.py -mq $MQ -lambda1 $LAMBDA1 -gamma $GAMMA -lambda4 $LAMBDA4"
 
-python map_phase_diagram_improved.py \
+python3 map_phase_diagram_improved.py \
     -mq $MQ \
     -lambda1 $LAMBDA1 \
     -gamma $GAMMA \

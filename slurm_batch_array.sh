@@ -171,8 +171,10 @@ echo "  tmin = $TMIN"
 echo "  tmax = $TMAX"
 echo "  maxiter = $MAXITER"
 
-# Load modules
-# Python 3.6.8 available system-wide
+# Load required modules (adjust for obsidian's specific environment)  
+# Note: Python3 is available at /usr/bin/python3 - no module load needed
+# module load python/3.9  # Not available on obsidian
+# module load numpy scipy matplotlib pandas
 
 # Set environment and change to submit directory
 export PYTHONPATH=$PYTHONPATH:$PWD
@@ -229,7 +231,7 @@ fi
 echo "Starting batch_phase_diagram_scan.py at $(date)"
 
 # Run the batch phase diagram scan for this parameter combination
-python batch_phase_diagram_scan.py \
+python3 batch_phase_diagram_scan.py \
     -mq $MQ \
     -lambda1 $LAMBDA1 \
     -gamma $GAMMA \
