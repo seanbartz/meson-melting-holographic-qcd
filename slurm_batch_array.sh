@@ -1,8 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=batch_phase_array
-#SBATCH --partition    # Return the values as a space-separated string
-    echo "${values[*]}"  # Use [*] to join with spaces instead of [n] for newlines
-}l
 #SBATCH --array=1-N%10
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
