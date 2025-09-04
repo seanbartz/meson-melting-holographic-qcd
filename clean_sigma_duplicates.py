@@ -115,16 +115,31 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     
     for idx, row in df_clean_structure.iterrows():
         try:
-            # Basic sanity check: ensure row has proper data types where expected
+            # Basic sanity check: ensure row has proper data structure
             is_valid = True
             
-            # Check if numeric columns contain reasonable values
-            for col in df_clean_structure.columns:
-                if col not in ['timestamp', 'task_id', 'job_id', 'node']:
+            # Check critical columns that must have values (not sigma2, sigma3, d0_2, d0_3)
+            required_cols = ['T', 'mu', 'ui', 'uf', 'mq', 'mq_tolerance', 'lambda1', 'num_solutions']
+            
+            for col in required_cols:
+                if col in df_clean_structure.columns:
                     val = row[col]
                     if pd.isna(val) or val == '' or str(val).strip() == '':
                         is_valid = False
                         break
+                        
+            # For sigma/d0 columns, allow empty values (when num_solutions < 3)
+            # But if they exist, they should be numeric or empty
+            optional_numeric_cols = ['sigma1', 'sigma2', 'sigma3', 'd0_1', 'd0_2', 'd0_3']
+            for col in optional_numeric_cols:
+                if col in df_clean_structure.columns:
+                    val = row[col]
+                    if val != '' and not pd.isna(val):
+                        try:
+                            float(val)  # Test if it's a valid number
+                        except (ValueError, TypeError):
+                            is_valid = False
+                            break
                         
             if is_valid:
                 clean_indices.append(idx)
@@ -137,6 +152,7 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
     
     if malformed_rows > 0:
         print(f"Filtering out {malformed_rows} malformed/incomplete rows")
+        print("  (Rows missing required physics parameters or with invalid data types)")
         df = df_clean_structure.loc[clean_indices]
         print(f"After structure cleaning: {len(df)} entries")
     else:
@@ -145,6 +161,8 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create
             empty_removed = initial_len - len(df)
             print(f"Removed {empty_removed} completely empty rows")
             print(f"After structure cleaning: {len(df)} entries")
+        
+    print("Note: Empty sigma2/sigma3/d0_2/d0_3 fields are valid (when num_solutions < 3)")
     
     # Create backup of original file before cleaning
     if create_backup:
