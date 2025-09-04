@@ -6,6 +6,9 @@ Removes entries with identical physics parameters, keeping only the most recent
 timestamp for each unique parameter combination. This prevents ML bias from
 overrepresented parameter sets.
 
+The script automatically creates a timestamped backup of the original file
+before cleaning, unless disabled with --no-backup or in preview mode.
+
 Usage:
     # On Obsidian cluster:
     python clean_sigma_duplicates.py /net/project/QUENCH/sigma_data/sigma_calculations.csv
@@ -23,9 +26,11 @@ import pandas as pd
 import numpy as np
 import argparse
 import sys
+import shutil
 from pathlib import Path
+from datetime import datetime
 
-def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10):
+def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10, create_backup=True):
     """
     Remove duplicate entries from sigma calculations CSV.
     
@@ -37,6 +42,8 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10):
         Path to output CSV file (default: input_file_cleaned.csv)
     tolerance : float
         Tolerance for floating point comparison (default: 1e-10)
+    create_backup : bool
+        Whether to create a backup of the original file (default: True)
     
     Returns:
     --------
@@ -56,6 +63,20 @@ def clean_sigma_duplicates(input_file, output_file=None, tolerance=1e-10):
     
     original_count = len(df)
     print(f"Original dataset: {original_count} entries")
+    
+    # Create backup of original file before cleaning
+    if create_backup:
+        input_path = Path(input_file)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = input_path.parent / f"{input_path.stem}_backup_{timestamp}{input_path.suffix}"
+        
+        print(f"Creating backup: {backup_file}")
+        try:
+            shutil.copy2(input_file, backup_file)
+            print(f"✓ Backup created successfully")
+        except Exception as e:
+            print(f"Warning: Could not create backup: {e}")
+            print("Continuing without backup...")
     
     # Identify physics parameter columns (exclude timestamp and calculation metadata)
     exclude_cols = ['timestamp', 'calculation_time', 'task_id', 'job_id', 'node']
@@ -141,6 +162,11 @@ def main():
         action='store_true',
         help='Preview what would be cleaned without saving'
     )
+    parser.add_argument(
+        '--no-backup',
+        action='store_true',
+        help='Skip creating backup of original file'
+    )
     
     args = parser.parse_args()
     
@@ -165,11 +191,13 @@ def main():
     
     if args.preview:
         print("PREVIEW MODE - No files will be modified")
-        # In preview mode, use a temporary output file
-        result = clean_sigma_duplicates(args.input_file, '/tmp/preview_output.csv', args.tolerance)
+        # In preview mode, use a temporary output file and don't create backup
+        result = clean_sigma_duplicates(args.input_file, '/tmp/preview_output.csv', 
+                                      args.tolerance, create_backup=False)
         Path('/tmp/preview_output.csv').unlink(missing_ok=True)  # Clean up temp file
     else:
-        result = clean_sigma_duplicates(args.input_file, args.output_file, args.tolerance)
+        result = clean_sigma_duplicates(args.input_file, args.output_file, 
+                                      args.tolerance, create_backup=not args.no_backup)
     
     if result is None:
         sys.exit(1)
