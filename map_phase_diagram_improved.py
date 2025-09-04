@@ -308,8 +308,9 @@ def generate_axial_melting_data(ml, lambda1, mu_min=0.0, mu_max=200.0, mu_points
     ]
     
     try:
-        # Run the axial melting scan
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)  # 30 minute timeout
+        # Run the axial melting scan (compatible with older Python versions)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                              universal_newlines=True, timeout=1800)  # 30 minute timeout
         
         if result.returncode == 0:
             print(f"Successfully generated axial melting data: {axial_filename}")
