@@ -57,9 +57,9 @@ echo ""
 read -p "Submit job array with $TOTAL_JOBS tasks? [y/N]: " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Submit with calculated array size (limit to 3 concurrent jobs)
-    echo "Submitting: sbatch --array=1-$TOTAL_JOBS%3 slurm_batch_array.sh $@"
-    sbatch --array=1-$TOTAL_JOBS%3 slurm_batch_array.sh "$@"
+    # Submit with calculated array size (limit to 10 concurrent jobs - one per available node)
+    echo "Submitting: sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh $@"
+    sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh "$@"
     
     if [ $? -eq 0 ]; then
         echo ""

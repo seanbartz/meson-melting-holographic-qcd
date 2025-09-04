@@ -1,14 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name=batch_phase_array
 #SBATCH --partition=all
-#SBATCH --array=1-N%3
+#SBATCH --array=1-N%10
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=8G
+#SBATCH --cpus-per-task=20
+#SBATCH --mem=60G
 #SBATCH --time=12:00:00
 #SBATCH --output=slurm_logs/batch_%A_%a.out
 #SBATCH --error=slurm_logs/batch_%A_%a.err
+#SBATCH --exclusive
 
 # SLURM Job Array for Individual Parameter Combinations
 # Usage: 
