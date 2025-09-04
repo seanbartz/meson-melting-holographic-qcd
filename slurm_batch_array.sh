@@ -56,7 +56,8 @@ parse_parameter_list() {
         elif [[ "$arg" == "-${param_name}" ]]; then
             found=true
             ((i++))
-            if [ $i -le $# ]; then
+            # For single parameter, only take one value and stop
+            if [ $i -le $# ] && [[ "${!i}" != -* ]]; then
                 values+=("${!i}")
             fi
             break
