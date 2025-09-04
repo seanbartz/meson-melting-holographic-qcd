@@ -166,7 +166,7 @@ parse_single_parameter() {
 
 # Parse physical parameters with defaults
 MUMIN=$(parse_single_parameter "mumin" "0.0" "$@")
-MUMAX=$(parse_single_parameter "mumax" "200.0" "$@")
+MUMAX=$(parse_single_parameter "mumax" "400.0" "$@")
 MUPOINTS=$(parse_single_parameter "mupoints" "20" "$@")
 TMIN=$(parse_single_parameter "tmin" "80.0" "$@")
 TMAX=$(parse_single_parameter "tmax" "210.0" "$@")

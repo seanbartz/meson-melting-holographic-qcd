@@ -271,7 +271,7 @@ def map_phase_diagram_improved(mu_min, mu_max, mu_points, lambda1, ml,
     
     return df
 
-def generate_axial_melting_data(ml, lambda1, mu_min=0.0, mu_max=200.0, mu_points=21, gamma=-22.4, lambda4=4.2):
+def generate_axial_melting_data(ml, lambda1, mu_min=0.0, mu_max=400.0, mu_points=21, gamma=-22.4, lambda4=4.2):
     """
     Generate axial melting data by calling axial_melting_scan.py
     
@@ -507,7 +507,7 @@ def main():
     
     # Chemical potential range
     parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential in MeV (default: 0.0)')
-    parser.add_argument('-mumax', type=float, default=200.0, help='Maximum chemical potential in MeV (default: 200.0)')
+    parser.add_argument('-mumax', type=float, default=400.0, help='Maximum chemical potential in MeV (default: 400.0)')
     parser.add_argument('-mupoints', type=int, default=20, help='Number of mu points to sample (default: 20)')
     
     # Temperature search parameters
