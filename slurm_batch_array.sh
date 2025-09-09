@@ -332,6 +332,21 @@ if [ $EXIT_CODE -eq 0 ]; then
     if [[ -n "$SHARED_DATA_DIR" ]]; then
         echo "Results copied to shared directory: $PROJECT_DIR"
     fi
+    
+    # Automatically log task summary results
+    echo "Logging task summary results..."
+    TASK_NAME="batch_${SLURM_ARRAY_JOB_ID}_${TASK_ID}"
+    
+    # Prepare task summary command
+    TASK_LOG_CMD="python3 log_task_results.py $TASK_NAME"
+    TASK_LOG_CMD="$TASK_LOG_CMD --mq $MQ --lambda1 $LAMBDA1 --gamma $GAMMA --lambda4 $LAMBDA4"
+    TASK_LOG_CMD="$TASK_LOG_CMD --T-min $TMIN --T-max $TMAX --mu-min $MUMIN --mu-max $MUMAX --num-mu-values $MUPOINTS"
+    TASK_LOG_CMD="$TASK_LOG_CMD --notes 'SLURM batch array job - parameters: mq=$MQ lambda1=$LAMBDA1 gamma=$GAMMA lambda4=$LAMBDA4'"
+    TASK_LOG_CMD="$TASK_LOG_CMD --auto-detect"
+    
+    # Run task logging (don't fail the job if logging fails)
+    eval $TASK_LOG_CMD || echo "Warning: Task summary logging failed, but calculation completed successfully"
+    
 else
     echo "ERROR: Task $TASK_ID failed with exit code $EXIT_CODE at $(date)"
 fi

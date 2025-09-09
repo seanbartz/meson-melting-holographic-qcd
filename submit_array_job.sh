@@ -57,6 +57,15 @@ echo ""
 read -p "Submit job array with $TOTAL_JOBS tasks? [y/N]: " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Ensure task logging script is available
+    if [ ! -f "log_task_results.py" ]; then
+        echo "Warning: log_task_results.py not found in current directory"
+        echo "Task summary logging will be skipped"
+    else
+        echo "Task summary logging enabled"
+        echo "Results will be logged to: /net/project/QUENCH/summary_data/task_summary.csv"
+    fi
+    
     # Submit with calculated array size (limit to 10 concurrent jobs - one per available node)
     echo "Submitting: sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh $@"
     sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh "$@"
@@ -67,6 +76,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Monitor with: squeue -u \$USER"
         echo "Cancel with: scancel JOBID  (where JOBID is shown above)"
         echo "View logs in: slurm_logs/batch_JOBID_TASKID.out"
+        echo ""
+        echo "Task summaries will be automatically logged to: summary_data/task_summary.csv"
+        echo "Each completed task will log its parameters and attempt to auto-detect results"
     fi
 else
     echo "Job submission cancelled."
