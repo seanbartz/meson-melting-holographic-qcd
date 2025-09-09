@@ -15,15 +15,17 @@ v4 = 4.2
 v3 = -22.6/(6*np.sqrt(2))
 
 def check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
-                             v3_param, v4_param, tolerance=1e-10, filename='sigma_calculations.csv'):
+                             v3_param, v4_param, input_tolerance=1e-10, calc_tolerance=1e-8, filename='sigma_calculations.csv'):
     """
     Check if this exact calculation (parameters + results) already exists in the CSV.
     
     Parameters:
     -----------
     All calculation parameters (v3_param and v4_param are the actual values passed, not globals)
-    tolerance : float
-        Tolerance for floating point comparison
+    input_tolerance : float
+        Tolerance for input parameter comparison (default: 1e-10)
+    calc_tolerance : float  
+        Tolerance for calculated value comparison (default: 1e-8)
     filename : str
         CSV file to check
         
@@ -47,20 +49,25 @@ def check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d
         gamma_param = v3_param * 6 * np.sqrt(2)
         lambda4_param = v4_param
         
-        # Create boolean mask for matching rows
-        mask = (
-            (np.abs(df['T'] - T) < tolerance) &
-            (np.abs(df['mu'] - mu) < tolerance) &
-            (np.abs(df['ui'] - ui) < tolerance) &
-            (np.abs(df['uf'] - uf) < tolerance) &
-            (np.abs(df['mq'] - mq_input) < tolerance) &
-            (np.abs(df['mq_tolerance'] - mq_tolerance) < tolerance) &
-            (np.abs(df['lambda1'] - lambda1) < tolerance) &
-            (np.abs(df['gamma'] - gamma_param) < tolerance) &
-            (np.abs(df['lambda4'] - lambda4_param) < tolerance) &
-            (np.abs(df['d0_lower'] - d0_lower) < tolerance) &
-            (np.abs(df['d0_upper'] - d0_upper) < tolerance)
+        # Create boolean mask for matching rows with different tolerances
+        # Strict tolerance for input parameters (should be exact)
+        input_mask = (
+            (np.abs(df['T'] - T) < input_tolerance) &
+            (np.abs(df['mu'] - mu) < input_tolerance) &
+            (np.abs(df['ui'] - ui) < input_tolerance) &
+            (np.abs(df['uf'] - uf) < input_tolerance) &
+            (np.abs(df['mq'] - mq_input) < input_tolerance) &
+            (np.abs(df['mq_tolerance'] - mq_tolerance) < input_tolerance) &
+            (np.abs(df['lambda1'] - lambda1) < input_tolerance) &
+            (np.abs(df['gamma'] - gamma_param) < input_tolerance) &
+            (np.abs(df['lambda4'] - lambda4_param) < input_tolerance) &
+            (np.abs(df['d0_lower'] - d0_lower) < input_tolerance) &
+            (np.abs(df['d0_upper'] - d0_upper) < input_tolerance)
         )
+        
+        # For now, we only check input parameters for duplicates
+        # (Calculated sigma/d0 values might vary slightly due to numerical precision)
+        mask = input_mask
         
         # Check if any rows match all parameters
         matching_rows = df[mask]
