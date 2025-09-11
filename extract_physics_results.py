@@ -73,24 +73,33 @@ class PhysicsResultsExtractor:
         """
         Extract physics parameters from standardized filenames.
         
-        Expected format: *_mq{value}_lambda{value}*.csv or similar
+        Expected format: phase_diagram_improved_mq_X_lambda1_Y_gamma_Z_lambda4_W.csv
         """
         import re
         params = {}
         
-        # Common parameter patterns in filenames
+        filename_str = str(filename)
+        
+        # Enhanced parameter patterns for phase diagram files
         patterns = {
-            'mq': r'mq([0-9]+\.?[0-9]*)',
-            'lambda1': r'lambda([0-9]+\.?[0-9]*)',
-            'ml': r'ml([0-9]+\.?[0-9]*)'
+            'mq': r'mq[_-]([0-9]+\.?[0-9]*)',
+            'lambda1': r'lambda1[_-]([0-9]+\.?[0-9]*)',
+            'gamma': r'gamma[_-]([-]?[0-9]+\.?[0-9]*)',
+            'lambda4': r'lambda4[_-]([0-9]+\.?[0-9]*)',
+            # Alternative patterns
+            'ml': r'ml[_-]([0-9]+\.?[0-9]*)'  # Convert ml to mq
         }
         
-        filename_str = str(filename)
         for param, pattern in patterns.items():
             match = re.search(pattern, filename_str)
             if match:
-                params[param] = float(match.group(1))
+                value = float(match.group(1))
+                if param == 'ml':
+                    params['mq'] = value  # Convert ml to mq
+                else:
+                    params[param] = value
         
+        print(f"  Extracted from filename '{filename.name}': {params}")
         return params
     
     def analyze_melting_data(self, melting_files):
@@ -198,8 +207,8 @@ class PhysicsResultsExtractor:
         
         return results
     
-    def estimate_parameter_ranges(self, all_files):
-        """Estimate physics parameters from filenames and available data."""
+    def estimate_parameter_ranges(self, all_files, task_id=None):
+        """Estimate physics parameters from filenames and available data, with task context."""
         params = {}
         
         # Try to extract from filenames
@@ -208,14 +217,29 @@ class PhysicsResultsExtractor:
                 extracted = self.extract_parameters_from_filename(file_path)
                 params.update(extracted)
         
+        # Use task context if available (extract from task_id)
+        if task_id:
+            # Check if we can get parameters from existing task summary
+            try:
+                df = self.logger.get_summary_dataframe()
+                if not df.empty and task_id in df['task_id'].values:
+                    task_row = df[df['task_id'] == task_id].iloc[0]
+                    print(f"  Found existing task data for {task_id}")
+                    for param in ['mq', 'lambda1', 'gamma', 'lambda4']:
+                        if pd.notna(task_row[param]) and task_row[param] != '':
+                            params[param] = float(task_row[param])
+                            print(f"    Using {param} = {params[param]} from task summary")
+            except Exception as e:
+                print(f"  Could not load existing task data: {e}")
+        
         # Set defaults for common parameters if not found
         if 'gamma' not in params:
-            # Try to estimate from lambda values (gamma ≈ lambda1 * some_factor)
-            if 'lambda1' in params:
-                params['gamma'] = params['lambda1'] * 2.0  # Rough estimate
+            params['gamma'] = -22.4  # Standard default
+            print(f"  Using default gamma = {params['gamma']}")
         
         if 'lambda4' not in params:
-            params['lambda4'] = 12.0  # Common default value
+            params['lambda4'] = 4.2  # Standard default  
+            print(f"  Using default lambda4 = {params['lambda4']}")
         
         return params
     
@@ -248,7 +272,7 @@ class PhysicsResultsExtractor:
         results.update(phase_results)
         
         # Estimate physics parameters
-        param_estimates = self.estimate_parameter_ranges(result_files)
+        param_estimates = self.estimate_parameter_ranges(result_files, task_id)
         results.update(param_estimates)
         
         # Set defaults for missing values
