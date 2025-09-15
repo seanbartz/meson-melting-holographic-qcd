@@ -265,79 +265,23 @@ class PhysicsResultsExtractor:
                     
                     print(f"  → Chiral transition: T={chiral_T:.2f} MeV at μ={closest_mu:.2f} MeV")
                     
-                    # Look for phase transition order at the lowest μ value
+                    # Look for phase indicators
                     phase_cols = [col for col in df.columns if any(p in col.lower() for p in ['phase', 'order', 'transition'])]
                     if phase_cols:
                         print(f"  → Found phase columns: {phase_cols}")
-                        # Extract transition order at the lowest |μ| value
+                        # Try to determine transition order
                         phase_col = phase_cols[0]
                         phase_val = df_clean.loc[min_mu_idx, phase_col]
                         
+                        # Heuristic: if phase value is 1, assume first order; if 2 or higher, crossover
                         if pd.notna(phase_val):
-                            # Convert to numeric if needed
-                            try:
-                                phase_val = float(phase_val)
-                                # Interpretation: 1 = first-order, 2 = crossover/second-order
-                                if phase_val == 1:
-                                    results['chiral_transition_order'] = 1  # First-order
-                                    order_text = "first-order"
-                                elif phase_val >= 2:
-                                    results['chiral_transition_order'] = 2  # Crossover
-                                    order_text = "crossover"
-                                else:
-                                    results['chiral_transition_order'] = int(phase_val)
-                                    order_text = f"order-{int(phase_val)}"
-                                
-                                print(f"  → Phase transition order at μ={closest_mu:.2f} MeV: {results['chiral_transition_order']} ({order_text})")
-                                
-                                # If transition at lowest μ is crossover, look for critical point
-                                if results['chiral_transition_order'] == 2:  # Crossover at lowest μ
-                                    print("  → Crossover at lowest μ - searching for critical point...")
-                                    
-                                    # Look for transition from crossover (2) to first-order (1) with increasing μ
-                                    df_ordered = df_clean.sort_values(mu_col)
-                                    prev_order = None
-                                    critical_found = False
-                                    
-                                    for idx, row in df_ordered.iterrows():
-                                        current_order = row[phase_col]
-                                        current_mu = row[mu_col]
-                                        current_T = row[T_col]
-                                        
-                                        if pd.notna(current_order):
-                                            current_order = float(current_order)
-                                            
-                                            # Check for transition from crossover (2) to first-order (1)
-                                            if prev_order is not None and prev_order >= 2 and current_order == 1:
-                                                results['has_critical_point'] = True
-                                                results['critical_point_T'] = float(current_T)
-                                                results['critical_point_mu'] = float(current_mu)
-                                                critical_found = True
-                                                print(f"  → Critical point found: T={current_T:.2f} MeV, μ={current_mu:.2f} MeV")
-                                                print(f"    (Transition from crossover to first-order)")
-                                                break
-                                            
-                                            prev_order = current_order
-                                    
-                                    if not critical_found:
-                                        print("  → No crossover→first-order transition found")
-                                        results['has_critical_point'] = False
-                                else:
-                                    # First-order at lowest μ - check for explicit critical point data
-                                    print("  → First-order at lowest μ - checking for explicit critical point data...")
-                                    results['has_critical_point'] = False  # Default unless found explicitly
-                                    
-                            except (ValueError, TypeError):
-                                print(f"  → Could not parse phase order value: {phase_val}")
-                        else:
-                            print(f"  → No phase order data at μ={closest_mu:.2f} MeV")
-                    else:
-                        print("  → No phase order columns found")
+                            results['chiral_transition_order'] = int(min(2, max(1, phase_val)))
+                            print(f"  → Transition order: {results['chiral_transition_order']}")
                     
-                    # Look for explicit critical point data in columns
-                    cp_cols = [col for col in df.columns if any(cp in col.lower() for cp in ['critical', 'cp_', 'crit']) and col.lower() != phase_col.lower()]
-                    if cp_cols and 'has_critical_point' not in results:
-                        print(f"  → Found explicit critical point columns: {cp_cols}")
+                    # Look for critical point data
+                    cp_cols = [col for col in df.columns if any(cp in col.lower() for cp in ['critical', 'cp_', 'crit'])]
+                    if cp_cols:
+                        print(f"  → Found critical point columns: {cp_cols}")
                         
                         # Look for critical point T and mu values
                         cp_T_cols = [col for col in cp_cols if any(t in col.lower() for t in ['t', 'temp'])]
@@ -351,7 +295,7 @@ class PhysicsResultsExtractor:
                                 results['has_critical_point'] = True
                                 results['critical_point_T'] = float(cp_T_data.iloc[0])
                                 results['critical_point_mu'] = float(cp_mu_data.iloc[0])
-                                print(f"  → Explicit critical point: T={results['critical_point_T']:.2f} MeV, μ={results['critical_point_mu']:.2f} MeV")
+                                print(f"  → Critical point: T={results['critical_point_T']:.2f} MeV, μ={results['critical_point_mu']:.2f} MeV")
                     
                     # Default values if not found
                     if 'chiral_transition_order' not in results:
