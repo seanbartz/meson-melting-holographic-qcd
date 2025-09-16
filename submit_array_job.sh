@@ -98,9 +98,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     fi
     
     # Submit with flexible resource allocation - let SLURM handle memory
-    echo "Submitting: sbatch --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
+    PARTITION_ARG="--partition=${SUBMIT_PARTITION:-all}"
+    echo "Submitting: sbatch $PARTITION_ARG --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
     export FLEXIBLE_CPUS_PER_TASK=$CPUS_PER_TASK
-    sbatch --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
+    sbatch $PARTITION_ARG --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
     
     if [ $? -eq 0 ]; then
         echo ""

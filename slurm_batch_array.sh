@@ -2,7 +2,7 @@
 #SBATCH --job-name=meson_melting_aggressive
 #SBATCH --array=1-N%20
 #SBATCH --time=24:00:00
-#SBATCH --partition=general
+# Partition is set by the submit helper (SUBMIT_PARTITION env var) or defaults to 'all'
 
 # FLEXIBLE RESOURCE ALLOCATION - TAKE WHAT'S AVAILABLE
 # Requests flexible CPUs per task, uses environment variable for allocation
