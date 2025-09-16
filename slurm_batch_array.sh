@@ -8,7 +8,6 @@
 # Requests flexible CPUs per task, uses environment variable for allocation
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=3G
-#SBATCH --share
 
 # OUTPUT/ERROR FILES  
 #SBATCH --output=slurm_logs/batch_%A_%a.out

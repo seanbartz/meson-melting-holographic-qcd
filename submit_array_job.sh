@@ -81,7 +81,7 @@ echo "Flexible resource allocation:"
 echo "  CPUs per task: $CPUS_PER_TASK (optimized for $TOTAL_JOBS total tasks)"
 echo "  Memory per task: $TOTAL_MEMORY_ESTIMATE (SLURM manages automatically)"
 echo "  Max concurrent jobs: $CONCURRENT_JOBS"
-echo "  Uses --share for flexible node utilization"
+echo "  Note: Not all SLURM installs support --share; scheduler will decide node placement"
 echo ""
 
 # Ask for confirmation
