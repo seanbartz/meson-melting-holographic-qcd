@@ -4,11 +4,11 @@
 #SBATCH --time=24:00:00
 #SBATCH --partition=general
 
-# AGGRESSIVE RESOURCE ALLOCATION FOR MAXIMUM PERFORMANCE
-# Requests 8-20 CPUs per task depending on availability and job count
+# FLEXIBLE RESOURCE ALLOCATION - TAKE WHAT'S AVAILABLE
+# Requests 1-20 CPUs per task, SLURM allocates based on availability
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=${AGGRESSIVE_CPUS_PER_TASK:-16}
-#SBATCH --mem-per-cpu=${AGGRESSIVE_MEMORY_PER_CPU:-3G}
+#SBATCH --cpus-per-task=1-20
+#SBATCH --mem-per-cpu=${FLEXIBLE_MEMORY_PER_CPU:-3G}
 #SBATCH --share
 
 # OUTPUT/ERROR FILES  
@@ -21,22 +21,22 @@ export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMBA_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-# SLURM Job Array with Aggressive Resource Allocation
+# SLURM Job Array with Flexible Resource Allocation
 # Usage: 
-#   export AGGRESSIVE_CPUS_PER_TASK=16; export AGGRESSIVE_MEMORY_PER_CPU=3G
+#   export FLEXIBLE_MIN_CPUS=1; export FLEXIBLE_MAX_CPUS=20; export FLEXIBLE_MEMORY_PER_CPU=3G
 #   sbatch --array=1-N%20 slurm_batch_array.sh -mq 9.0 12.0 15.0 -lambda1 3.0 5.0 7.0 -gamma -22.4 -lambda4 4.2
 #   
 # Key improvements:
-#   - Requests 8-20 CPUs per task (scales with job count)
+#   - Requests 1-20 CPUs per task, SLURM allocates what's available
 #   - Uses --share for flexible node usage (no --exclusive)
-#   - Can grab any available CPUs across the cluster
-#   - Up to 20 concurrent tasks for typical workloads
-#   - Aggressive threading for maximum performance
+#   - Takes any available CPUs across the cluster (even single CPUs)
+#   - Simple and flexible - no complex dynamic scaling logic
+#   - Optimal threading for whatever resources are allocated
 
 # Create log directory
 mkdir -p slurm_logs
 
-echo "=== AGGRESSIVE SLURM Job Array Task ==="
+echo "=== FLEXIBLE SLURM Job Array Task ==="
 echo "Job ID: $SLURM_ARRAY_JOB_ID"
 echo "Task ID: $SLURM_ARRAY_TASK_ID"
 echo "Node: $SLURMD_NODENAME"

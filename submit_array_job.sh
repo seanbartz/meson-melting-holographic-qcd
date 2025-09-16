@@ -45,7 +45,7 @@ LAMBDA4_COUNT=$(count_values "lambda4" "$@")
 # Calculate total combinations
 TOTAL_JOBS=$((MQ_COUNT * LAMBDA1_COUNT * GAMMA_COUNT * LAMBDA4_COUNT))
 
-echo "=== Aggressive Resource Allocation (Up to 20 CPUs/task) ==="
+echo "=== Aggressive Resource Allocation (1-20 CPUs/task) ==="
 echo "Parameter counts:"
 echo "  mq: $MQ_COUNT"
 echo "  lambda1: $LAMBDA1_COUNT"  
@@ -54,34 +54,30 @@ echo "  lambda4: $LAMBDA4_COUNT"
 echo "  Total job array size: $TOTAL_JOBS"
 echo ""
 
-# Determine aggressive resource allocation based on job count
-if [ $TOTAL_JOBS -le 5 ]; then
-    CPUS_PER_TASK=20
+# Flexible resource allocation - let SLURM allocate what's available
+# Request 1-20 CPUs per task, take whatever is available
+MIN_CPUS_PER_TASK=1
+MAX_CPUS_PER_TASK=20
+MEMORY_PER_CPU="3G"
+
+# Set reasonable concurrency based on total jobs
+if [ $TOTAL_JOBS -le 10 ]; then
     CONCURRENT_JOBS=$TOTAL_JOBS
-    MEMORY_PER_CPU="3G"
-elif [ $TOTAL_JOBS -le 10 ]; then
-    CPUS_PER_TASK=16
-    CONCURRENT_JOBS=$TOTAL_JOBS
-    MEMORY_PER_CPU="3G"
-elif [ $TOTAL_JOBS -le 25 ]; then
-    CPUS_PER_TASK=10
-    CONCURRENT_JOBS=15
-    MEMORY_PER_CPU="3G"
-else
-    CPUS_PER_TASK=8
+elif [ $TOTAL_JOBS -le 50 ]; then
     CONCURRENT_JOBS=20
-    MEMORY_PER_CPU="3G"
+else
+    CONCURRENT_JOBS=40
 fi
 
-TOTAL_MEMORY_PER_TASK=$((CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
+TOTAL_MEMORY_PER_TASK_MIN=$((MIN_CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
+TOTAL_MEMORY_PER_TASK_MAX=$((MAX_CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
 
-echo "Aggressive resource allocation:"
-echo "  CPUs per task: $CPUS_PER_TASK"
+echo "Flexible resource allocation:"
+echo "  CPUs per task: ${MIN_CPUS_PER_TASK}-${MAX_CPUS_PER_TASK} (SLURM will allocate what's available)"
 echo "  Memory per CPU: $MEMORY_PER_CPU"
-echo "  Total memory per task: ${TOTAL_MEMORY_PER_TASK}G"
+echo "  Memory per task: ${TOTAL_MEMORY_PER_TASK_MIN}G-${TOTAL_MEMORY_PER_TASK_MAX}G"
 echo "  Max concurrent jobs: $CONCURRENT_JOBS"
-echo "  Node sharing: YES (can use partial nodes)"
-echo "  Can scale up to full 20-CPU nodes when available"
+echo "  Will take any available resources from 1 CPU to full 20-CPU nodes"
 echo ""
 
 # Ask for confirmation
@@ -97,10 +93,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Results will be logged to: /net/project/QUENCH/summary_data/task_summary.csv"
     fi
     
-    # Submit with aggressive resource allocation
+    # Submit with flexible resource allocation
     echo "Submitting: sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
-    export AGGRESSIVE_CPUS_PER_TASK=$CPUS_PER_TASK
-    export AGGRESSIVE_MEMORY_PER_CPU=$MEMORY_PER_CPU
+    export FLEXIBLE_MIN_CPUS=$MIN_CPUS_PER_TASK
+    export FLEXIBLE_MAX_CPUS=$MAX_CPUS_PER_TASK
+    export FLEXIBLE_MEMORY_PER_CPU=$MEMORY_PER_CPU
     sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
     
     if [ $? -eq 0 ]; then
@@ -108,10 +105,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "✓ Aggressive resource job submitted successfully!"
         echo ""
         echo "Resource allocation:"
-        echo "  → ${CPUS_PER_TASK} CPUs per task (up to full 20-CPU nodes)"
-        echo "  → ${TOTAL_MEMORY_PER_TASK}GB memory per task"
+        echo "  → ${MIN_CPUS_PER_TASK}-${MAX_CPUS_PER_TASK} CPUs per task (SLURM allocates what's available)"
+        echo "  → ${TOTAL_MEMORY_PER_TASK_MIN}G-${TOTAL_MEMORY_PER_TASK_MAX}G memory per task"
         echo "  → Can utilize any available CPUs on any node"
         echo "  → Up to $CONCURRENT_JOBS tasks running concurrently"
+        echo "  → Will grab anything from single CPUs to full 20-CPU nodes"
         echo ""
         echo "Monitoring commands:"
         echo "  Monitor jobs: squeue -u \$USER"
