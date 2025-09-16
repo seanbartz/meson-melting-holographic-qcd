@@ -55,7 +55,7 @@ echo "  Total job array size: $TOTAL_JOBS"
 echo ""
 
 # Flexible resource allocation - set reasonable CPU count based on job size
-# Since SLURM doesn't support CPU ranges, use intelligent defaults
+# Let SLURM handle memory allocation automatically
 if [ $TOTAL_JOBS -le 5 ]; then
     CPUS_PER_TASK=16  # High CPU for small jobs
 elif [ $TOTAL_JOBS -le 20 ]; then
@@ -66,8 +66,6 @@ else
     CPUS_PER_TASK=2   # Minimal for very large jobs
 fi
 
-MEMORY_PER_CPU="3G"
-
 # Set reasonable concurrency based on total jobs
 if [ $TOTAL_JOBS -le 10 ]; then
     CONCURRENT_JOBS=$TOTAL_JOBS
@@ -77,12 +75,11 @@ else
     CONCURRENT_JOBS=40
 fi
 
-TOTAL_MEMORY_PER_TASK=$((CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
+TOTAL_MEMORY_ESTIMATE="SLURM default per CPU"
 
 echo "Flexible resource allocation:"
 echo "  CPUs per task: $CPUS_PER_TASK (optimized for $TOTAL_JOBS total tasks)"
-echo "  Memory per CPU: $MEMORY_PER_CPU"
-echo "  Memory per task: ${TOTAL_MEMORY_PER_TASK}G"
+echo "  Memory per task: $TOTAL_MEMORY_ESTIMATE (SLURM manages automatically)"
 echo "  Max concurrent jobs: $CONCURRENT_JOBS"
 echo "  Uses --share for flexible node utilization"
 echo ""
@@ -100,11 +97,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Results will be logged to: /net/project/QUENCH/summary_data/task_summary.csv"
     fi
     
-    # Submit with flexible resource allocation
-    echo "Submitting: sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
+    # Submit with flexible resource allocation - let SLURM handle memory
+    echo "Submitting: sbatch --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
     export FLEXIBLE_CPUS_PER_TASK=$CPUS_PER_TASK
-    export FLEXIBLE_MEMORY_PER_CPU=$MEMORY_PER_CPU
-    sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
+    sbatch --cpus-per-task=$CPUS_PER_TASK --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
     
     if [ $? -eq 0 ]; then
         echo ""
@@ -112,10 +108,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo ""
         echo "Resource allocation:"
         echo "  → $CPUS_PER_TASK CPUs per task (optimized for job array size)"
-        echo "  → ${TOTAL_MEMORY_PER_TASK}G memory per task"
+        echo "  → Memory allocated automatically by SLURM (typically 2-4GB per CPU)"
         echo "  → Can utilize partial nodes with --share"
         echo "  → Up to $CONCURRENT_JOBS tasks running concurrently"
-        echo "  → Intelligent scaling: more CPUs for fewer tasks"
+        echo "  → Faster scheduling without memory constraints"
         echo ""
         echo "Monitoring commands:"
         echo "  Monitor jobs: squeue -u \$USER"

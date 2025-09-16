@@ -7,8 +7,7 @@
 # FLEXIBLE RESOURCE ALLOCATION - TAKE WHAT'S AVAILABLE
 # Requests flexible CPUs per task, uses environment variable for allocation
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=${FLEXIBLE_CPUS_PER_TASK:-8}
-#SBATCH --mem-per-cpu=${FLEXIBLE_MEMORY_PER_CPU:-3G}
+#SBATCH --mem-per-cpu=3G
 #SBATCH --share
 
 # OUTPUT/ERROR FILES  
