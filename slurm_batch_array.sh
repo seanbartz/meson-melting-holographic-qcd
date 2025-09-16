@@ -5,9 +5,9 @@
 #SBATCH --partition=general
 
 # FLEXIBLE RESOURCE ALLOCATION - TAKE WHAT'S AVAILABLE
-# Requests 1-20 CPUs per task, SLURM allocates based on availability
+# Requests flexible CPUs per task, uses environment variable for allocation
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1-20
+#SBATCH --cpus-per-task=${FLEXIBLE_CPUS_PER_TASK:-8}
 #SBATCH --mem-per-cpu=${FLEXIBLE_MEMORY_PER_CPU:-3G}
 #SBATCH --share
 
@@ -21,22 +21,22 @@ export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMBA_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-# SLURM Job Array with Flexible Resource Allocation
+# SLURM Job Array with Intelligent Resource Allocation
 # Usage: 
-#   export FLEXIBLE_MIN_CPUS=1; export FLEXIBLE_MAX_CPUS=20; export FLEXIBLE_MEMORY_PER_CPU=3G
+#   export FLEXIBLE_CPUS_PER_TASK=8; export FLEXIBLE_MEMORY_PER_CPU=3G
 #   sbatch --array=1-N%20 slurm_batch_array.sh -mq 9.0 12.0 15.0 -lambda1 3.0 5.0 7.0 -gamma -22.4 -lambda4 4.2
 #   
 # Key improvements:
-#   - Requests 1-20 CPUs per task, SLURM allocates what's available
+#   - Requests intelligent CPU count based on job array size
 #   - Uses --share for flexible node usage (no --exclusive)
-#   - Takes any available CPUs across the cluster (even single CPUs)
-#   - Simple and flexible - no complex dynamic scaling logic
-#   - Optimal threading for whatever resources are allocated
+#   - Takes available CPUs based on cluster load
+#   - Simple and compatible with all SLURM versions
+#   - Optimal threading for allocated resources
 
 # Create log directory
 mkdir -p slurm_logs
 
-echo "=== FLEXIBLE SLURM Job Array Task ==="
+echo "=== INTELLIGENT SLURM Job Array Task ==="
 echo "Job ID: $SLURM_ARRAY_JOB_ID"
 echo "Task ID: $SLURM_ARRAY_TASK_ID"
 echo "Node: $SLURMD_NODENAME"

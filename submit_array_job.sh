@@ -54,10 +54,18 @@ echo "  lambda4: $LAMBDA4_COUNT"
 echo "  Total job array size: $TOTAL_JOBS"
 echo ""
 
-# Flexible resource allocation - let SLURM allocate what's available
-# Request 1-20 CPUs per task, take whatever is available
-MIN_CPUS_PER_TASK=1
-MAX_CPUS_PER_TASK=20
+# Flexible resource allocation - set reasonable CPU count based on job size
+# Since SLURM doesn't support CPU ranges, use intelligent defaults
+if [ $TOTAL_JOBS -le 5 ]; then
+    CPUS_PER_TASK=16  # High CPU for small jobs
+elif [ $TOTAL_JOBS -le 20 ]; then
+    CPUS_PER_TASK=8   # Balanced for medium jobs
+elif [ $TOTAL_JOBS -le 50 ]; then
+    CPUS_PER_TASK=4   # Conservative for larger jobs
+else
+    CPUS_PER_TASK=2   # Minimal for very large jobs
+fi
+
 MEMORY_PER_CPU="3G"
 
 # Set reasonable concurrency based on total jobs
@@ -69,15 +77,14 @@ else
     CONCURRENT_JOBS=40
 fi
 
-TOTAL_MEMORY_PER_TASK_MIN=$((MIN_CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
-TOTAL_MEMORY_PER_TASK_MAX=$((MAX_CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
+TOTAL_MEMORY_PER_TASK=$((CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
 
 echo "Flexible resource allocation:"
-echo "  CPUs per task: ${MIN_CPUS_PER_TASK}-${MAX_CPUS_PER_TASK} (SLURM will allocate what's available)"
+echo "  CPUs per task: $CPUS_PER_TASK (optimized for $TOTAL_JOBS total tasks)"
 echo "  Memory per CPU: $MEMORY_PER_CPU"
-echo "  Memory per task: ${TOTAL_MEMORY_PER_TASK_MIN}G-${TOTAL_MEMORY_PER_TASK_MAX}G"
+echo "  Memory per task: ${TOTAL_MEMORY_PER_TASK}G"
 echo "  Max concurrent jobs: $CONCURRENT_JOBS"
-echo "  Will take any available resources from 1 CPU to full 20-CPU nodes"
+echo "  Uses --share for flexible node utilization"
 echo ""
 
 # Ask for confirmation
@@ -95,8 +102,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     
     # Submit with flexible resource allocation
     echo "Submitting: sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
-    export FLEXIBLE_MIN_CPUS=$MIN_CPUS_PER_TASK
-    export FLEXIBLE_MAX_CPUS=$MAX_CPUS_PER_TASK
+    export FLEXIBLE_CPUS_PER_TASK=$CPUS_PER_TASK
     export FLEXIBLE_MEMORY_PER_CPU=$MEMORY_PER_CPU
     sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
     
@@ -105,11 +111,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "✓ Aggressive resource job submitted successfully!"
         echo ""
         echo "Resource allocation:"
-        echo "  → ${MIN_CPUS_PER_TASK}-${MAX_CPUS_PER_TASK} CPUs per task (SLURM allocates what's available)"
-        echo "  → ${TOTAL_MEMORY_PER_TASK_MIN}G-${TOTAL_MEMORY_PER_TASK_MAX}G memory per task"
-        echo "  → Can utilize any available CPUs on any node"
+        echo "  → $CPUS_PER_TASK CPUs per task (optimized for job array size)"
+        echo "  → ${TOTAL_MEMORY_PER_TASK}G memory per task"
+        echo "  → Can utilize partial nodes with --share"
         echo "  → Up to $CONCURRENT_JOBS tasks running concurrently"
-        echo "  → Will grab anything from single CPUs to full 20-CPU nodes"
+        echo "  → Intelligent scaling: more CPUs for fewer tasks"
         echo ""
         echo "Monitoring commands:"
         echo "  Monitor jobs: squeue -u \$USER"
