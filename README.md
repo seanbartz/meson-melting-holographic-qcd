@@ -42,8 +42,8 @@ This research investigates the melting of mesons in a holographic model of QCD, 
 - `clean_sigma_duplicates.py` ⭐ **NEW** - Clean duplicate sigma data for ML preparation
 
 ### SLURM Cluster Support ⭐ **NEW**
-- `slurm_batch_array.sh` - SLURM job array script for parameter combinations
-- `submit_array_job.sh` - Helper script to calculate and submit job arrays
+- `slurm_batch_array.sh` - SLURM job array script with intelligent resource allocation
+- `submit_array_job.sh` - Cluster-aware helper script with real-time resource optimization
 - `clean_cluster_sigma_data.sh` - Convenient cluster data cleaning wrapper
 
 ### Scanning and Batch Processing
@@ -88,14 +88,30 @@ python critical_zoom_improved.py -T 95.0 -mu 100.0
 
 ### SLURM Cluster Usage ⭐ **NEW**
 ```bash
-# Automated parameter scan on clusters (e.g., Obsidian)
+# Automated parameter scan with intelligent resource allocation
 ./submit_array_job.sh -mq 12.0 -lambda1values 5.8 5.9 6.0 -gamma -22.4 -lambda4 4.2
+
+# The script automatically analyzes cluster availability and optimizes:
+# - Uses 20 CPUs per task when full nodes are available (maximum speed)
+# - Falls back to 1-2 CPUs per task when cluster is busy (maximum parallelism) 
+# - Queues for 20 CPUs when cluster is saturated (aggressive future allocation)
+
+# Conservative mode for faster queue times (forces smaller allocations)
+export CONSERVATIVE_MODE=1
+./submit_array_job.sh -mq 12.0 -lambda1values 5.8 5.9 6.0
+
+# Custom partition (defaults to 'all')
+export SUBMIT_PARTITION=gpu
+./submit_array_job.sh -mq 12.0 -lambda1values 5.8 5.9 6.0
 
 # Monitor running jobs
 squeue -u $USER
 
 # Check job outputs
 tail -f slurm_logs/batch_JOBID_TASKID.out
+
+# View cluster resource availability (what the script analyzes)
+sinfo -N -o "%N %C"  # Format: Node CPUs(Allocated/Idle/Other/Total)
 ```
 
 ### Data Cleaning for Machine Learning ⭐ **NEW**
@@ -177,17 +193,49 @@ mu_g_440/
 2. Make scripts executable: `chmod +x *.sh *.py`
 3. Ensure Python 3 is available: `python3 --version`
 
+### Intelligent Resource Allocation ⭐ **NEW**
+The SLURM submission system now automatically analyzes real-time cluster availability and optimizes resource allocation:
+
+#### **Automatic Strategies:**
+- **🟢 Empty Nodes Available**: Uses full 20-CPU nodes for maximum computational speed
+- **🟡 Partially Busy Cluster**: Uses 4-10 CPUs per task for balanced performance  
+- **🟠 Very Busy Cluster**: Uses 1-2 CPUs per task to maximize job starts
+- **🔴 Saturated Cluster**: Queues for 20-CPU nodes (aggressive) or 1-CPU (conservative mode)
+
+#### **Real-Time Analysis:**
+```bash
+# The submit script automatically runs cluster analysis:
+./submit_array_job.sh [parameters]
+
+# Example output:
+# "Analyzing cluster availability..."
+# "Nodes with idle CPUs: node01 1, node08 20, node29 4"
+# "Total idle CPUs across cluster: 45"
+# "Empty nodes (≥20 CPUs): 1"
+# "Strategy: Using full 20-CPU nodes for maximum performance per job"
+# "Immediate capacity: 2 tasks can start now"
+```
+
+#### **Environment Variables:**
+- `CONSERVATIVE_MODE=1` - Forces smaller CPU allocations for faster queue times
+- `SUBMIT_PARTITION=partition_name` - Override default partition ('all')
+
 ### Workflow
 1. **Development**: Test parameters locally or with small jobs
-2. **Scaling**: Use SLURM job arrays for large parameter scans
-3. **Data Management**: Results automatically saved to shared project storage
-4. **ML Preparation**: Clean duplicates from accumulated sigma data
+2. **Real-time Optimization**: Submit script analyzes cluster and adapts automatically
+3. **Scaling**: SLURM job arrays handle large parameter scans efficiently
+4. **Data Management**: Results automatically saved to shared project storage
+5. **ML Preparation**: Clean duplicates from accumulated sigma data
 
 ### Best Practices
+- **Resource Awareness**: Let the script analyze cluster state - don't override unless needed
+- **Conservative Mode**: Use `CONSERVATIVE_MODE=1` for urgent jobs requiring fast queue times
+- **Monitor Efficiency**: Check `seff JOBID` to verify CPU utilization matches allocation
 - Use `--preview` mode to test job arrays before submission
 - Monitor disk usage in `/net/project/QUENCH/`  
 - Clean sigma data periodically to remove duplicates
 - Use `git pull` to sync latest improvements
+- **Cluster Etiquette**: Aggressive mode is designed to be respectful - uses available resources efficiently without monopolizing
 
 ## Research Context
 
