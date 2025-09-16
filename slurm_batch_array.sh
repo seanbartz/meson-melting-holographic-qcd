@@ -1,36 +1,52 @@
 #!/bin/bash
-#SBATCH --job-name=batch_phase_array
-#SBATCH --array=1-N%10
-#SBATCH --nodes=1
+#SBATCH --job-name=meson_melting_aggressive
+#SBATCH --array=1-N%20
+#SBATCH --time=24:00:00
+#SBATCH --partition=general
+
+# AGGRESSIVE RESOURCE ALLOCATION FOR MAXIMUM PERFORMANCE
+# Requests 8-20 CPUs per task depending on availability and job count
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=20
-#SBATCH --mem=60G
-#SBATCH --time=12:00:00
+#SBATCH --cpus-per-task=${AGGRESSIVE_CPUS_PER_TASK:-16}
+#SBATCH --mem-per-cpu=${AGGRESSIVE_MEMORY_PER_CPU:-3G}
+#SBATCH --share
+
+# OUTPUT/ERROR FILES  
 #SBATCH --output=slurm_logs/batch_%A_%a.out
 #SBATCH --error=slurm_logs/batch_%A_%a.err
-#SBATCH --exclusive
 
-# SLURM Job Array for Individual Parameter Combinations
+# PERFORMANCE OPTIMIZATIONS - Use all allocated CPUs aggressively
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export NUMBA_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+
+# SLURM Job Array with Aggressive Resource Allocation
 # Usage: 
-#   sbatch --array=1-N%3 slurm_batch_array.sh -mqvalues 9.0 12.0 15.0 -lambda1values 3.0 5.0 7.0 -gamma -22.4 -lambda4 4.2
+#   export AGGRESSIVE_CPUS_PER_TASK=16; export AGGRESSIVE_MEMORY_PER_CPU=3G
+#   sbatch --array=1-N%20 slurm_batch_array.sh -mq 9.0 12.0 15.0 -lambda1 3.0 5.0 7.0 -gamma -22.4 -lambda4 4.2
 #   
-#   Where N = number of parameter combinations (calculated automatically)
-#   The %3 limits concurrent jobs to 3 (adjust as needed)
-#   
-# Examples:
-#   sbatch --array=1-9%3 slurm_batch_array.sh -mqvalues 9.0 12.0 15.0 -lambda1values 3.0 5.0 7.0 -gamma -22.4 -lambda4 4.2
-#   sbatch --array=1-6%2 slurm_batch_array.sh -mq 9.0 -lambda1 5.0 -gammavalues -25.0 -22.4 -20.0 -lambda4values 4.0 4.2
+# Key improvements:
+#   - Requests 8-20 CPUs per task (scales with job count)
+#   - Uses --share for flexible node usage (no --exclusive)
+#   - Can grab any available CPUs across the cluster
+#   - Up to 20 concurrent tasks for typical workloads
+#   - Aggressive threading for maximum performance
 
 # Create log directory
 mkdir -p slurm_logs
 
-echo "=== SLURM Job Array Task ==="
+echo "=== AGGRESSIVE SLURM Job Array Task ==="
 echo "Job ID: $SLURM_ARRAY_JOB_ID"
 echo "Task ID: $SLURM_ARRAY_TASK_ID"
 echo "Node: $SLURMD_NODENAME"
+echo "CPUs allocated: $SLURM_CPUS_PER_TASK / $(nproc) on node"
+echo "Memory allocated: ${SLURM_MEM_PER_CPU}MB per CPU"
+echo "Total task memory: $((SLURM_CPUS_PER_TASK * SLURM_MEM_PER_CPU))MB"
+echo "Threading: $OMP_NUM_THREADS threads"
 echo "Submit directory: $SLURM_SUBMIT_DIR"
 echo "Command line args: $@"
-echo "=========================="
+echo "========================================"
 
 # Parse command line arguments
 parse_parameter_list() {

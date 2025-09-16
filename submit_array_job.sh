@@ -45,6 +45,7 @@ LAMBDA4_COUNT=$(count_values "lambda4" "$@")
 # Calculate total combinations
 TOTAL_JOBS=$((MQ_COUNT * LAMBDA1_COUNT * GAMMA_COUNT * LAMBDA4_COUNT))
 
+echo "=== Aggressive Resource Allocation (Up to 20 CPUs/task) ==="
 echo "Parameter counts:"
 echo "  mq: $MQ_COUNT"
 echo "  lambda1: $LAMBDA1_COUNT"  
@@ -53,8 +54,38 @@ echo "  lambda4: $LAMBDA4_COUNT"
 echo "  Total job array size: $TOTAL_JOBS"
 echo ""
 
+# Determine aggressive resource allocation based on job count
+if [ $TOTAL_JOBS -le 5 ]; then
+    CPUS_PER_TASK=20
+    CONCURRENT_JOBS=$TOTAL_JOBS
+    MEMORY_PER_CPU="3G"
+elif [ $TOTAL_JOBS -le 10 ]; then
+    CPUS_PER_TASK=16
+    CONCURRENT_JOBS=$TOTAL_JOBS
+    MEMORY_PER_CPU="3G"
+elif [ $TOTAL_JOBS -le 25 ]; then
+    CPUS_PER_TASK=10
+    CONCURRENT_JOBS=15
+    MEMORY_PER_CPU="3G"
+else
+    CPUS_PER_TASK=8
+    CONCURRENT_JOBS=20
+    MEMORY_PER_CPU="3G"
+fi
+
+TOTAL_MEMORY_PER_TASK=$((CPUS_PER_TASK * ${MEMORY_PER_CPU%G}))
+
+echo "Aggressive resource allocation:"
+echo "  CPUs per task: $CPUS_PER_TASK"
+echo "  Memory per CPU: $MEMORY_PER_CPU"
+echo "  Total memory per task: ${TOTAL_MEMORY_PER_TASK}G"
+echo "  Max concurrent jobs: $CONCURRENT_JOBS"
+echo "  Node sharing: YES (can use partial nodes)"
+echo "  Can scale up to full 20-CPU nodes when available"
+echo ""
+
 # Ask for confirmation
-read -p "Submit job array with $TOTAL_JOBS tasks? [y/N]: " -n 1 -r
+read -p "Submit aggressive job array with $TOTAL_JOBS tasks? [y/N]: " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     # Ensure task logging script is available
@@ -66,19 +97,31 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Results will be logged to: /net/project/QUENCH/summary_data/task_summary.csv"
     fi
     
-    # Submit with calculated array size (limit to 10 concurrent jobs - one per available node)
-    echo "Submitting: sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh $@"
-    sbatch --array=1-$TOTAL_JOBS%10 slurm_batch_array.sh "$@"
+    # Submit with aggressive resource allocation
+    echo "Submitting: sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh $@"
+    export AGGRESSIVE_CPUS_PER_TASK=$CPUS_PER_TASK
+    export AGGRESSIVE_MEMORY_PER_CPU=$MEMORY_PER_CPU
+    sbatch --array=1-$TOTAL_JOBS%$CONCURRENT_JOBS slurm_batch_array.sh "$@"
     
     if [ $? -eq 0 ]; then
         echo ""
-        echo "Job submitted successfully!"
-        echo "Monitor with: squeue -u \$USER"
-        echo "Cancel with: scancel JOBID  (where JOBID is shown above)"
-        echo "View logs in: slurm_logs/batch_JOBID_TASKID.out"
+        echo "✓ Aggressive resource job submitted successfully!"
         echo ""
-        echo "Task summaries will be automatically logged to: summary_data/task_summary.csv"
-        echo "Each completed task will log its parameters and attempt to auto-detect results"
+        echo "Resource allocation:"
+        echo "  → ${CPUS_PER_TASK} CPUs per task (up to full 20-CPU nodes)"
+        echo "  → ${TOTAL_MEMORY_PER_TASK}GB memory per task"
+        echo "  → Can utilize any available CPUs on any node"
+        echo "  → Up to $CONCURRENT_JOBS tasks running concurrently"
+        echo ""
+        echo "Monitoring commands:"
+        echo "  Monitor jobs: squeue -u \$USER"
+        echo "  Job efficiency: seff JOBID"
+        echo "  Resource usage: sstat -j JOBID.TASKID"
+        echo "  Cancel all: scancel -u \$USER"
+        echo ""
+        echo "Results:"
+        echo "  Task summaries: summary_data/task_summary.csv"
+        echo "  Physics plots: phase_plots/"
     fi
 else
     echo "Job submission cancelled."
