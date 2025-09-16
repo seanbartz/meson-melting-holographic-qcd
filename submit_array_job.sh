@@ -54,34 +54,78 @@ echo "  lambda4: $LAMBDA4_COUNT"
 echo "  Total job array size: $TOTAL_JOBS"
 echo ""
 
-# Flexible resource allocation - set reasonable CPU count based on job size
-# Let SLURM handle memory allocation automatically
-if [ $TOTAL_JOBS -le 5 ]; then
-    CPUS_PER_TASK=16  # High CPU for small jobs
-elif [ $TOTAL_JOBS -le 20 ]; then
-    CPUS_PER_TASK=8   # Balanced for medium jobs
-elif [ $TOTAL_JOBS -le 50 ]; then
-    CPUS_PER_TASK=4   # Conservative for larger jobs
+# Flexible resource allocation - analyze cluster availability and optimize
+# Check current cluster state to determine optimal CPU allocation
+echo "Analyzing cluster availability..."
+
+# Get idle CPUs per node
+IDLE_CPUS_INFO=$(sinfo -h -N -o "%N %C" | awk -F/ '{
+    node=$1; idle=$3; total=$4
+    if (idle > 0) print node, idle
+}' | sort -k2 -nr)
+
+echo "Nodes with idle CPUs:"
+echo "$IDLE_CPUS_INFO"
+
+# Calculate total idle CPUs and distribution
+TOTAL_IDLE=$(echo "$IDLE_CPUS_INFO" | awk '{sum+=$2} END {print sum+0}')
+NODE_COUNT=$(echo "$IDLE_CPUS_INFO" | wc -l)
+NODE_COUNT=${NODE_COUNT:-0}
+
+echo "Total idle CPUs across cluster: $TOTAL_IDLE"
+echo "Nodes with available CPUs: $NODE_COUNT"
+
+if [ $NODE_COUNT -eq 0 ] || [ $TOTAL_IDLE -eq 0 ]; then
+    echo "WARNING: No idle CPUs found. Jobs will queue until resources become available."
+    CPUS_PER_TASK=1
+    IMMEDIATE_CAPACITY=0
 else
-    CPUS_PER_TASK=2   # Minimal for very large jobs
+    # Calculate optimal CPU allocation
+    # Strategy: Find CPU count that maximizes immediate job starts
+    AVG_IDLE_PER_NODE=$((TOTAL_IDLE / NODE_COUNT))
+    
+    # For small job arrays, try to use more CPUs per task
+    # For large job arrays, use fewer CPUs per task to start more jobs immediately
+    if [ $TOTAL_JOBS -le 5 ] && [ $TOTAL_IDLE -ge 20 ]; then
+        CPUS_PER_TASK=4  # Use more resources for small focused runs
+    elif [ $TOTAL_JOBS -le $NODE_COUNT ]; then
+        # We have enough nodes for each task to get a dedicated node
+        CPUS_PER_TASK=$AVG_IDLE_PER_NODE
+        [ $CPUS_PER_TASK -gt 8 ] && CPUS_PER_TASK=8  # Cap at 8 CPUs
+        [ $CPUS_PER_TASK -lt 1 ] && CPUS_PER_TASK=1  # Minimum 1 CPU
+    else
+        # More tasks than nodes with idle CPUs - be conservative
+        CPUS_PER_TASK=1
+    fi
+    
+    # Estimate how many jobs can start immediately
+    IMMEDIATE_CAPACITY=$((TOTAL_IDLE / CPUS_PER_TASK))
 fi
 
-# Set reasonable concurrency based on total jobs
-if [ $TOTAL_JOBS -le 10 ]; then
-    CONCURRENT_JOBS=$TOTAL_JOBS
-elif [ $TOTAL_JOBS -le 50 ]; then
-    CONCURRENT_JOBS=20
+# Set reasonable concurrency based on immediate capacity and total jobs
+if [ $IMMEDIATE_CAPACITY -ge $TOTAL_JOBS ]; then
+    CONCURRENT_JOBS=$TOTAL_JOBS  # All jobs can start immediately
+elif [ $IMMEDIATE_CAPACITY -gt 0 ]; then
+    CONCURRENT_JOBS=$((IMMEDIATE_CAPACITY + 5))  # Start available + a few queued
 else
-    CONCURRENT_JOBS=40
+    # No immediate capacity, use standard limits
+    if [ $TOTAL_JOBS -le 10 ]; then
+        CONCURRENT_JOBS=$TOTAL_JOBS
+    elif [ $TOTAL_JOBS -le 50 ]; then
+        CONCURRENT_JOBS=20
+    else
+        CONCURRENT_JOBS=40
+    fi
 fi
 
 TOTAL_MEMORY_ESTIMATE="SLURM default per CPU"
 
-echo "Flexible resource allocation:"
-echo "  CPUs per task: $CPUS_PER_TASK (optimized for $TOTAL_JOBS total tasks)"
+echo "Cluster-aware resource allocation:"
+echo "  CPUs per task: $CPUS_PER_TASK (optimized for current cluster state)"
 echo "  Memory per task: $TOTAL_MEMORY_ESTIMATE (SLURM manages automatically)"
 echo "  Max concurrent jobs: $CONCURRENT_JOBS"
-echo "  Note: Not all SLURM installs support --share; scheduler will decide node placement"
+echo "  Immediate capacity: $IMMEDIATE_CAPACITY tasks can start now"
+echo "  Strategy: Analyzed $NODE_COUNT nodes with $TOTAL_IDLE total idle CPUs"
 echo ""
 
 # Ask for confirmation
@@ -108,11 +152,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "✓ Aggressive resource job submitted successfully!"
         echo ""
         echo "Resource allocation:"
-        echo "  → $CPUS_PER_TASK CPUs per task (optimized for job array size)"
+        echo "  → $CPUS_PER_TASK CPUs per task (cluster-optimized)"
         echo "  → Memory allocated automatically by SLURM (typically 2-4GB per CPU)"
-        echo "  → Can utilize partial nodes with --share"
+        echo "  → $IMMEDIATE_CAPACITY/$TOTAL_JOBS tasks can start immediately"
         echo "  → Up to $CONCURRENT_JOBS tasks running concurrently"
-        echo "  → Faster scheduling without memory constraints"
+        echo "  → Analyzed real-time cluster availability for optimal scheduling"
         echo ""
         echo "Monitoring commands:"
         echo "  Monitor jobs: squeue -u \$USER"
