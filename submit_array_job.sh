@@ -81,21 +81,43 @@ if [ $NODE_COUNT -eq 0 ] || [ $TOTAL_IDLE -eq 0 ]; then
     IMMEDIATE_CAPACITY=0
 else
     # Calculate optimal CPU allocation
-    # Strategy: Find CPU count that maximizes immediate job starts
-    AVG_IDLE_PER_NODE=$((TOTAL_IDLE / NODE_COUNT))
+    # Priority: Use full nodes (20 CPUs) when available for faster individual job completion
     
-    # For small job arrays, try to use more CPUs per task
-    # For large job arrays, use fewer CPUs per task to start more jobs immediately
-    if [ $TOTAL_JOBS -le 5 ] && [ $TOTAL_IDLE -ge 20 ]; then
-        CPUS_PER_TASK=4  # Use more resources for small focused runs
+    # Check for completely empty nodes (20 idle CPUs)
+    EMPTY_NODES=$(echo "$IDLE_CPUS_INFO" | awk '$2 >= 20 {count++} END {print count+0}')
+    LARGE_NODES=$(echo "$IDLE_CPUS_INFO" | awk '$2 >= 10 {count++} END {print count+0}')
+    
+    echo "Empty nodes (≥20 CPUs): $EMPTY_NODES"
+    echo "Large availability nodes (≥10 CPUs): $LARGE_NODES"
+    
+    if [ $EMPTY_NODES -gt 0 ]; then
+        # Use full 20-CPU nodes for faster completion
+        CPUS_PER_TASK=20
+        echo "Strategy: Using full 20-CPU nodes for maximum performance per job"
+    elif [ $LARGE_NODES -gt 0 ] && [ $TOTAL_JOBS -le 10 ]; then
+        # Use large allocations for small job counts
+        CPUS_PER_TASK=10
+        echo "Strategy: Using 10-CPU allocation for fast completion of small job set"
+    elif [ $TOTAL_JOBS -le 5 ] && [ $TOTAL_IDLE -ge 20 ]; then
+        # For very small focused runs, use substantial resources
+        CPUS_PER_TASK=8
+        echo "Strategy: High-resource allocation for focused small run"
     elif [ $TOTAL_JOBS -le $NODE_COUNT ]; then
         # We have enough nodes for each task to get a dedicated node
+        AVG_IDLE_PER_NODE=$((TOTAL_IDLE / NODE_COUNT))
         CPUS_PER_TASK=$AVG_IDLE_PER_NODE
-        [ $CPUS_PER_TASK -gt 8 ] && CPUS_PER_TASK=8  # Cap at 8 CPUs
+        [ $CPUS_PER_TASK -gt 8 ] && CPUS_PER_TASK=8  # Cap at 8 CPUs for this case
         [ $CPUS_PER_TASK -lt 1 ] && CPUS_PER_TASK=1  # Minimum 1 CPU
+        echo "Strategy: Dedicated node allocation ($CPUS_PER_TASK CPUs per task)"
     else
-        # More tasks than nodes with idle CPUs - be conservative
-        CPUS_PER_TASK=1
+        # More tasks than nodes with idle CPUs - be conservative but still reasonable
+        if [ $TOTAL_IDLE -ge $((TOTAL_JOBS * 2)) ]; then
+            CPUS_PER_TASK=2  # Can afford 2 CPUs per task
+            echo "Strategy: Conservative 2-CPU allocation for large job array"
+        else
+            CPUS_PER_TASK=1
+            echo "Strategy: Minimal 1-CPU allocation for maximum parallel execution"
+        fi
     fi
     
     # Estimate how many jobs can start immediately
