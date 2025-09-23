@@ -436,11 +436,12 @@ def save_data(mu_values, melting_temperatures, mq_value, lambda1_value, gamma=No
     """
     Save the melting temperature data to a CSV file.
     """
-    # Ensure axial_data directory exists
+    # Ensure local axial_data directory exists
     os.makedirs('axial_data', exist_ok=True)
     
     # Generate filename with new naming convention (always include gamma and lambda4)
-    filename = f'axial_data/axial_melting_data_mq_{mq_value:.1f}_lambda1_{lambda1_value:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv'
+    filename = f'axial_melting_data_mq_{mq_value:.1f}_lambda1_{lambda1_value:.1f}_gamma_{gamma:.1f}_lambda4_{lambda4:.1f}.csv'
+    local_filename = f'axial_data/{filename}'
     
     # Create header
     header = f"# Axial Meson Melting Temperature Data\n"
@@ -450,9 +451,21 @@ def save_data(mu_values, melting_temperatures, mq_value, lambda1_value, gamma=No
     # Combine data
     data = np.column_stack((mu_values, melting_temperatures))
     
-    # Save to file
-    np.savetxt(filename, data, fmt='%.6f', delimiter=',', header=header)
-    print(f"Data saved to {filename}")
+    # Save to local directory
+    np.savetxt(local_filename, data, fmt='%.6f', delimiter=',', header=header)
+    print(f"Data saved to {local_filename}")
+    
+    # Also save to QUENCH project directory if running on Obsidian cluster
+    if os.path.exists('/net/project/QUENCH'):
+        # On Obsidian cluster - save to shared directory
+        quench_dir = '/net/project/QUENCH/axial_data'
+        os.makedirs(quench_dir, exist_ok=True)
+        quench_filename = os.path.join(quench_dir, filename)
+        
+        np.savetxt(quench_filename, data, fmt='%.6f', delimiter=',', header=header)
+        print(f"Data also saved to {quench_filename}")
+    else:
+        print("Local development mode - data only saved to axial_data/")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scan axial melting temperatures vs chemical potential')
