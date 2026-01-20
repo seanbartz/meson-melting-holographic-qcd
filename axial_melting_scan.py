@@ -470,7 +470,7 @@ def save_data(mu_values, melting_temperatures, mq_value, lambda1_value, gamma=No
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scan axial melting temperatures vs chemical potential')
     parser.add_argument('-mumin', type=float, default=0.0, help='Minimum chemical potential (MeV)')
-    parser.add_argument('-mumax', type=float, default=200.0, help='Maximum chemical potential (MeV)')
+    parser.add_argument('-mumax', type=float, default=400.0, help='Maximum chemical potential (MeV)')
     parser.add_argument('-mupoints', type=int, default=21, help='Number of chemical potential points')
     parser.add_argument('-mq', type=float, default=9.0, help='Quark mass (MeV)')
     parser.add_argument('-lambda1', type=float, default=7.438, help='Lambda1 parameter')

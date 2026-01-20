@@ -2,14 +2,20 @@
 
 ## Summary of Changes
 
-Updated `axial_melting_scan.py` to accept gamma and lambda4 as optional CLI arguments, convert them to internal v3 and v4 parameters, use mug as a command line parameter, and implement the new file naming and directory conventions.
+Updated `axial_melting_scan.py` to:
+1. Accept gamma and lambda4 as optional CLI arguments
+2. Convert them to internal v3 and v4 parameters
+3. Use mug as a command line parameter
+4. Implement the new file naming and directory conventions
+5. **Align default μ range with phase diagram calculations (0-400 MeV)**
 
 ## Key Changes
 
 ### 1. Command Line Arguments
-- Added `--gamma` (optional): Background metric parameter gamma
-- Added `--lambda4` (optional): Fourth-order coupling parameter lambda4
-- Added `--mug` (default: 440.0): mu_g parameter (previously imported from axial_spectra)
+- Added `-gamma` (optional): Background metric parameter gamma
+- Added `-lambda4` (optional): Fourth-order coupling parameter lambda4
+- Added `-mug` (default: 440.0): mu_g parameter (previously imported from axial_spectra)
+- **Updated `-mumax` default from 200.0 to 400.0 MeV** to align with phase diagram calculations
 
 ### 2. Parameter Conversion
 - When both `--gamma` and `--lambda4` are provided:
@@ -42,19 +48,27 @@ Updated `axial_melting_scan.py` to accept gamma and lambda4 as optional CLI argu
 
 ## Usage Examples
 
-### New Usage (with gamma and lambda4):
+### Full Usage (with all parameters):
 ```bash
-python axial_melting_scan.py --mq 9.0 --lambda1 7.438 --gamma -22.4 --lambda4 4.2 --mug 440.0
+python axial_melting_scan.py -mq 9.0 -lambda1 7.438 -gamma -22.4 -lambda4 4.2 -mug 440.0 -mumin 0.0 -mumax 400.0 -mupoints 21
 ```
 
-### Backward Compatible Usage:
+### Default Usage (uses aligned defaults):
 ```bash
-python axial_melting_scan.py --mq 9.0 --lambda1 7.438 --mug 450.0
+# Default mumax is now 400.0 MeV (aligned with phase diagram)
+python axial_melting_scan.py -mq 9.0 -lambda1 7.438 -gamma -22.4 -lambda4 4.2
+```
+
+### Custom μ Range (override defaults):
+```bash
+# Specify custom range if needed (e.g., for focused analysis)
+python axial_melting_scan.py -mq 9.0 -lambda1 7.438 -gamma -22.4 -lambda4 4.2 -mumin 0.0 -mumax 200.0 -mupoints 21
 ```
 
 ### Called from map_phase_diagram_improved.py:
 ```bash
-python axial_melting_scan.py --mq 9.0 --lambda1 7.438 --gamma -22.4 --lambda4 4.2 --no-display
+# Phase diagram script passes its μ range to axial melting scan
+python axial_melting_scan.py -mq 9.0 -lambda1 7.438 -gamma -22.4 -lambda4 4.2 -mumin 0.0 -mumax 400.0 -mupoints 21 --no-display
 ```
 
 ## Integration with map_phase_diagram_improved.py
