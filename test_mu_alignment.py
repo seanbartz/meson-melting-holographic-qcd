@@ -13,45 +13,54 @@ import numpy as np
 import sys
 
 def test_default_parameters():
-    """Test that default parameters are aligned."""
+    """Test that default parameters are aligned by reading from actual source files."""
     print("=" * 70)
     print("Testing Default Parameter Alignment")
     print("=" * 70)
     
-    # Import the scripts to check their defaults
-    import map_phase_diagram_improved
-    import axial_melting_scan
+    # Read actual defaults from source files using grep-like approach
+    def extract_default_from_file(filename, arg_name):
+        """Extract the default value for a parameter from a Python file."""
+        with open(filename, 'r') as f:
+            for line in f:
+                # Look for parser.add_argument lines for this parameter
+                if f"'{arg_name}'" in line or f'"{arg_name}"' in line:
+                    # Extract default value from the line
+                    if 'default=' in line:
+                        # Extract the value after default=
+                        default_part = line.split('default=')[1]
+                        # Get the value before the comma or closing paren
+                        value_str = default_part.split(',')[0].split(')')[0].strip()
+                        try:
+                            return float(value_str) if '.' in value_str else int(value_str)
+                        except ValueError:
+                            pass
+        return None
     
-    # Check argparse defaults by creating parsers
-    phase_parser = argparse.ArgumentParser()
-    phase_parser.add_argument('-mumin', type=float, default=0.0)
-    phase_parser.add_argument('-mumax', type=float, default=400.0)
-    phase_parser.add_argument('-mupoints', type=int, default=21)
+    # Extract defaults from actual source files
+    phase_mumin = extract_default_from_file('map_phase_diagram_improved.py', '-mumin')
+    phase_mumax = extract_default_from_file('map_phase_diagram_improved.py', '-mumax')
+    phase_mupoints = extract_default_from_file('map_phase_diagram_improved.py', '-mupoints')
     
-    axial_parser = argparse.ArgumentParser()
-    axial_parser.add_argument('-mumin', type=float, default=0.0)
-    axial_parser.add_argument('-mumax', type=float, default=400.0)
-    axial_parser.add_argument('-mupoints', type=int, default=21)
+    axial_mumin = extract_default_from_file('axial_melting_scan.py', '-mumin')
+    axial_mumax = extract_default_from_file('axial_melting_scan.py', '-mumax')
+    axial_mupoints = extract_default_from_file('axial_melting_scan.py', '-mupoints')
     
-    # Parse empty args to get defaults
-    phase_args, _ = phase_parser.parse_known_args([])
-    axial_args, _ = axial_parser.parse_known_args([])
+    print(f"\nPhase Diagram Defaults (from map_phase_diagram_improved.py):")
+    print(f"  mumin:    {phase_mumin} MeV")
+    print(f"  mumax:    {phase_mumax} MeV")
+    print(f"  mupoints: {phase_mupoints}")
     
-    print(f"\nPhase Diagram Defaults:")
-    print(f"  mumin:    {phase_args.mumin} MeV")
-    print(f"  mumax:    {phase_args.mumax} MeV")
-    print(f"  mupoints: {phase_args.mupoints}")
-    
-    print(f"\nAxial Melting Defaults:")
-    print(f"  mumin:    {axial_args.mumin} MeV")
-    print(f"  mumax:    {axial_args.mumax} MeV")
-    print(f"  mupoints: {axial_args.mupoints}")
+    print(f"\nAxial Melting Defaults (from axial_melting_scan.py):")
+    print(f"  mumin:    {axial_mumin} MeV")
+    print(f"  mumax:    {axial_mumax} MeV")
+    print(f"  mupoints: {axial_mupoints}")
     
     # Check alignment
     defaults_aligned = (
-        phase_args.mumin == axial_args.mumin and
-        phase_args.mumax == axial_args.mumax and
-        phase_args.mupoints == axial_args.mupoints
+        phase_mumin == axial_mumin and
+        phase_mumax == axial_mumax and
+        phase_mupoints == axial_mupoints
     )
     
     if defaults_aligned:
@@ -59,6 +68,8 @@ def test_default_parameters():
         return True
     else:
         print("\n✗ FAILURE: Default parameters are NOT aligned!")
+        print(f"  Phase diagram: mumin={phase_mumin}, mumax={phase_mumax}, mupoints={phase_mupoints}")
+        print(f"  Axial melting: mumin={axial_mumin}, mumax={axial_mumax}, mupoints={axial_mupoints}")
         return False
 
 def test_mu_values_generation():
@@ -106,27 +117,58 @@ def test_mu_values_generation():
         return False
 
 def test_slurm_parameter_passing():
-    """Test that SLURM workflow default parameters are correct."""
+    """Test that SLURM workflow default parameters are correct by reading from bash script."""
     print("\n" + "=" * 70)
     print("Testing SLURM Workflow Parameters")
     print("=" * 70)
     
-    # Expected SLURM defaults (from slurm_batch_array.sh lines 182-184)
-    slurm_mumin = 0.0
-    slurm_mumax = 400.0
-    slurm_mupoints = 21
+    # Extract defaults from SLURM bash script
+    def extract_bash_default(filename, param_name):
+        """Extract default value from bash script parse_single_parameter call."""
+        with open(filename, 'r') as f:
+            for line in f:
+                # Look for parse_single_parameter calls
+                if f'parse_single_parameter "{param_name}"' in line:
+                    # Extract the default value (second argument in quotes)
+                    parts = line.split('"')
+                    if len(parts) >= 4:
+                        try:
+                            value = parts[3]
+                            return float(value) if '.' in value else int(value)
+                        except ValueError:
+                            pass
+        return None
     
-    # Expected script defaults
-    script_mumin = 0.0
-    script_mumax = 400.0
-    script_mupoints = 21
+    # Extract from SLURM script
+    slurm_mumin = extract_bash_default('slurm_batch_array.sh', 'mumin')
+    slurm_mumax = extract_bash_default('slurm_batch_array.sh', 'mumax')
+    slurm_mupoints = extract_bash_default('slurm_batch_array.sh', 'mupoints')
     
-    print(f"\nSLURM Workflow Defaults:")
+    # Extract from Python scripts
+    def extract_default_from_file(filename, arg_name):
+        """Extract the default value for a parameter from a Python file."""
+        with open(filename, 'r') as f:
+            for line in f:
+                if f"'{arg_name}'" in line or f'"{arg_name}"' in line:
+                    if 'default=' in line:
+                        default_part = line.split('default=')[1]
+                        value_str = default_part.split(',')[0].split(')')[0].strip()
+                        try:
+                            return float(value_str) if '.' in value_str else int(value_str)
+                        except ValueError:
+                            pass
+        return None
+    
+    script_mumin = extract_default_from_file('map_phase_diagram_improved.py', '-mumin')
+    script_mumax = extract_default_from_file('map_phase_diagram_improved.py', '-mumax')
+    script_mupoints = extract_default_from_file('map_phase_diagram_improved.py', '-mupoints')
+    
+    print(f"\nSLURM Workflow Defaults (from slurm_batch_array.sh):")
     print(f"  mumin:    {slurm_mumin} MeV")
     print(f"  mumax:    {slurm_mumax} MeV")
     print(f"  mupoints: {slurm_mupoints}")
     
-    print(f"\nScript Defaults:")
+    print(f"\nScript Defaults (from map_phase_diagram_improved.py):")
     print(f"  mumin:    {script_mumin} MeV")
     print(f"  mumax:    {script_mumax} MeV")
     print(f"  mupoints: {script_mupoints}")
@@ -142,6 +184,8 @@ def test_slurm_parameter_passing():
         return True
     else:
         print("\n✗ FAILURE: SLURM workflow parameters are NOT aligned!")
+        print(f"  SLURM:  mumin={slurm_mumin}, mumax={slurm_mumax}, mupoints={slurm_mupoints}")
+        print(f"  Script: mumin={script_mumin}, mumax={script_mumax}, mupoints={script_mupoints}")
         return False
 
 def main():
