@@ -37,9 +37,9 @@ This document defines the standardized command-line argument conventions used ac
 - `-tmin` - Minimum temperature
 - `-tmax` - Maximum temperature
 - `-tstep` - Temperature step size
-- `-mumin` - Minimum chemical potential
-- `-mumax` - Maximum chemical potential
-- `-mupoints` - Number of chemical potential points
+- `-mumin` - Minimum chemical potential (default: 0.0 MeV)
+- `-mumax` - Maximum chemical potential (default: 400.0 MeV, aligned across all tools)
+- `-mupoints` - Number of chemical potential points (default: 21)
 
 ### Search Parameters
 - `-minsigma` - Minimum sigma value
@@ -71,7 +71,14 @@ python axial_spectra.py -T 20.0 -mu 50.0 -mq 9.0 -lambda1 7.438 -wi 500 -wf 3000
 
 ### Phase Diagram Generation
 ```bash
-python map_phase_diagram_improved.py -lambda1 7.438 -mq 9.0 -mumin 0.0 -mumax 200.0 -mupoints 20
+# Default μ range: 0-400 MeV with 21 points
+python map_phase_diagram_improved.py -lambda1 7.438 -mq 9.0 -mumin 0.0 -mumax 400.0 -mupoints 21
+```
+
+### Axial Melting Scan
+```bash
+# Aligned with phase diagram: 0-400 MeV with 21 points
+python axial_melting_scan.py -mq 9.0 -lambda1 7.438 -gamma -22.4 -lambda4 4.2 -mumin 0.0 -mumax 400.0 -mupoints 21
 ```
 
 ### Temperature Scan
