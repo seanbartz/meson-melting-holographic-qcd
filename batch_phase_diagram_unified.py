@@ -137,24 +137,32 @@ def run_phase_diagram(mq, lambda1, gamma, lambda4, mu_min=0.0, mu_max=200.0, mu_
         return False, None
 
 def log_physics_results(task_id, data_dir):
-    if not os.path.exists('extract_physics_results.py'):
+    # Use absolute path based on this script's location
+    script_dir = Path(__file__).resolve().parent
+    extract_script = script_dir / 'extract_physics_results.py'
+    
+    if not extract_script.exists():
         print("Skipping physics summary logging: extract_physics_results.py not found")
         return False
 
     cmd = [
-        sys.executable, 'extract_physics_results.py',
+        sys.executable, str(extract_script),
         '--task-id', task_id,
         '--data-dir', data_dir
     ]
     print(f"Logging physics summary: {' '.join(cmd)}")
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # Stream output directly to the console and enforce a timeout so a hung
+        # extractor cannot stall the entire batch run.
+        result = subprocess.run(cmd, text=True, timeout=600)
         if result.returncode == 0:
             print(f"✓ Logged physics summary for {task_id}")
             return True
-        print(f"⚠️  Physics summary logging failed for {task_id}")
-        print(result.stdout)
-        print(result.stderr)
+        print(f"⚠️  Physics summary logging failed for {task_id} (exit code {result.returncode})")
+        print("Check the above output from extract_physics_results.py for details.")
+        return False
+    except subprocess.TimeoutExpired:
+        print(f"⚠️  Physics summary logging timed out for {task_id}")
         return False
     except Exception as e:
         print(f"⚠️  Physics summary logging exception: {e}")
