@@ -136,6 +136,30 @@ def run_phase_diagram(mq, lambda1, gamma, lambda4, mu_min=0.0, mu_max=200.0, mu_
         print(f"✗ Exception: {str(e)}")
         return False, None
 
+def log_physics_results(task_id, data_dir):
+    if not os.path.exists('extract_physics_results.py'):
+        print("Skipping physics summary logging: extract_physics_results.py not found")
+        return False
+
+    cmd = [
+        sys.executable, 'extract_physics_results.py',
+        '--task-id', task_id,
+        '--data-dir', data_dir
+    ]
+    print(f"Logging physics summary: {' '.join(cmd)}")
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"✓ Logged physics summary for {task_id}")
+            return True
+        print(f"⚠️  Physics summary logging failed for {task_id}")
+        print(result.stdout)
+        print(result.stderr)
+        return False
+    except Exception as e:
+        print(f"⚠️  Physics summary logging exception: {e}")
+        return False
+
 def load_phase_diagram_data(csv_file):
     """
     Load phase diagram data from CSV file.
@@ -332,6 +356,12 @@ def run_batch_scan(mq_values, lambda1_values, gamma_values, lambda4_values,
         
         if success:
             successful_runs.append(((mq, lambda1, gamma, lambda4), output_file))
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            task_id = (
+                f"batch_{timestamp}_{i+1:03d}_"
+                f"mq{mq:.1f}_lambda1{lambda1:.1f}_gamma{gamma:.1f}_lambda4{lambda4:.1f}"
+            )
+            log_physics_results(task_id, os.getcwd())
         else:
             failed_runs.append((mq, lambda1, gamma, lambda4))
     
