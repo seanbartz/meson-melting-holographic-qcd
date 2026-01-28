@@ -44,7 +44,7 @@ class PhysicsResultsExtractor:
     def find_result_files(self):
         """Find all relevant result files in the data directory."""
         search_dirs = [self.data_dir]
-        for subdir in ['axial_data', 'phase_data']:
+        for subdir in ['axial_data', 'phase_data', 'sigma_data']:
             candidate = self.data_dir / subdir
             if candidate.exists():
                 search_dirs.append(candidate)
@@ -118,14 +118,24 @@ class PhysicsResultsExtractor:
         return df_clean.sort_values('mu')
 
     def _standardize_phase_dataframe(self, df):
-        temp_cols = [col for col in df.columns if any(t in col.lower() for t in ['tc', 'temp', 't_crit', 'critical_t']) and 'num' not in col.lower()]
-        mu_cols = [col for col in df.columns if any(m in col.lower() for m in ['mu', 'chemical', 'chem_pot']) and 'crit' not in col.lower()]
+        temp_cols = [
+            col
+            for col in df.columns
+            if any(t in str(col).lower() for t in ['tc', 'temp', 't_crit', 'critical_t'])
+            and 'num' not in str(col).lower()
+        ]
+        mu_cols = [
+            col
+            for col in df.columns
+            if any(m in str(col).lower() for m in ['mu', 'chemical', 'chem_pot'])
+            and 'crit' not in str(col).lower()
+        ]
 
         T_col = None
         mu_col = None
 
         for col in df.columns:
-            col_lower = col.lower()
+            col_lower = str(col).lower()
             if col_lower == 'tc' or col_lower == 't_critical' or col_lower == 'critical_temp':
                 T_col = col
             elif col_lower == 'mu' or col_lower == 'chemical_potential':
@@ -258,11 +268,11 @@ class PhysicsResultsExtractor:
         
         # Pattern matches for different parameter formats
         patterns = {
-            'mq': [r'mq([0-9]+\.?[0-9]*)', r'm_q([0-9]+\.?[0-9]*)'],
-            'ml': [r'ml([0-9]+\.?[0-9]*)', r'm_l([0-9]+\.?[0-9]*)'], 
-            'lambda1': [r'lambda([0-9]+\.?[0-9]*)', r'lambda1([0-9]+\.?[0-9]*)'],
-            'gamma': [r'gamma([+-]?[0-9]+\.?[0-9]*)', r'g([+-]?[0-9]+\.?[0-9]*)'],
-            'lambda4': [r'lambda4([0-9]+\.?[0-9]*)', r'l4([0-9]+\.?[0-9]*)']
+            'mq': [r'mq_?([0-9]+\.?[0-9]*)', r'm_q_?([0-9]+\.?[0-9]*)'],
+            'ml': [r'ml_?([0-9]+\.?[0-9]*)', r'm_l_?([0-9]+\.?[0-9]*)'], 
+            'lambda1': [r'lambda1_([0-9]+\.?[0-9]*)', r'lambda_([0-9]+\.?[0-9]*)', r'lambda1([0-9]+\.?[0-9]*)'],
+            'gamma': [r'gamma_?([+-]?[0-9]+\.?[0-9]*)', r'g_?([+-]?[0-9]+\.?[0-9]*)'],
+            'lambda4': [r'lambda4_([0-9]+\.?[0-9]*)', r'l4_?([0-9]+\.?[0-9]*)', r'lambda4([0-9]+\.?[0-9]*)']
         }
         
         for param_name, param_patterns in patterns.items():
@@ -684,10 +694,13 @@ class PhysicsResultsExtractor:
                     print(f"  {key}: {value}")
             
             if self.logger.task_exists(task_id):
+                # Filter out None values to avoid overwriting existing data with null
+                update_kwargs = {k: v for k, v in results.items() if v is not None}
+                if calculation_date is not None:
+                    update_kwargs['calculation_date'] = calculation_date
                 success = self.logger.update_task_summary(
                     task_id=task_id,
-                    calculation_date=calculation_date,
-                    **results
+                    **update_kwargs
                 )
             else:
                 success = self.logger.log_task_summary(
