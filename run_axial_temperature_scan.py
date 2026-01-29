@@ -322,8 +322,8 @@ def save_spectrum_plot(ws, BAs, peakws, peakBAs, mug, T, mu, mq, output_dir):
     
     plt.close()  # Close the figure to free memory
 
-def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lambda1_value=7.438, 
-                              wi_value=700, wf_value=2400, wcount_value=1700):
+def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lambda1_value=7.438,
+                              wi_value=700, wf_value=2400, wcount_value=1700, load_if_exists=False):
     """
     Run axial vector spectra calculations for a range of temperature values.
     
@@ -337,6 +337,7 @@ def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lam
     wi_value (float): Initial frequency in MeV
     wf_value (float): Final frequency in MeV
     wcount_value (float): Number of frequency points
+    load_if_exists (bool): Load cached spectra if available
     """
     # Create a directory to keep a record of the scan without timestamp
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -361,6 +362,7 @@ def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lam
         f.write(f"Lambda1: {lambda1_value}\n")
         f.write(f"Frequency range: {wi_value} to {wf_value} MeV\n")
         f.write(f"Frequency points: {wcount_value}\n")
+        f.write(f"Load cached spectra if exists: {load_if_exists}\n")
         f.write(f"Started at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
     
     # Generate temperature values
@@ -386,7 +388,7 @@ def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lam
         
         try:
             # Run the calculation using the main function with specified parameters
-            ws, BAs, peakws, peakBAs, mug = axial_spectra.main(
+            ws, BAs, peakws, peakBAs, mug, _ = axial_spectra.main(
                 T_value=temp,
                 mu_value=mu_value,
                 mq_value=mq_value,
@@ -394,11 +396,13 @@ def run_axial_temperature_scan(t_min, t_max, t_step, mu_value=0, mq_value=9, lam
                 wi_value=wi_value,
                 wf_value=wf_value,
                 wcount_value=wcount_value,
-                show_plot=False  # Don't show plots during batch processing
+                show_plot=False,  # Don't show plots during batch processing
+                load_if_exists=load_if_exists
             )
             
-            # Save spectrum plot for this temperature
-            save_spectrum_plot(ws, BAs, peakws, peakBAs, mug, temp, mu_value, mq_value, scan_dir)
+            # Save spectrum plot for this temperature unless cached
+            if not axial_spectra.last_used_cache:
+                save_spectrum_plot(ws, BAs, peakws, peakBAs, mug, temp, mu_value, mq_value, scan_dir)
             
             # Clean the peaks data to remove duplicates within 5 MeV of each other
             cleaned_peakws, cleaned_peakBAs = clean_peaks_data(peakws, peakBAs, omega_threshold=5.0)
@@ -479,6 +483,7 @@ if __name__ == "__main__":
     parser.add_argument('-wi', '--omega-initial', type=float, default=wi_value, help='Initial frequency in MeV')
     parser.add_argument('-wf', '--omega-final', type=float, default=wf_value, help='Final frequency in MeV')
     parser.add_argument('-wc', '--omega-count', type=int, default=wcount_value, help='Number of frequency points')
+    parser.add_argument('--load-if-exists', action='store_true', help='Load cached spectra if available')
     
     args = parser.parse_args()
     
@@ -492,5 +497,6 @@ if __name__ == "__main__":
         args.lambda1,
         args.omega_initial,
         args.omega_final,
-        args.omega_count
+        args.omega_count,
+        args.load_if_exists
     )

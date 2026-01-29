@@ -25,7 +25,7 @@ def test_direct_call():
     print(f"Frequency range: {wi} to {wf} with {wcount} points")
     
     # Run the calculation directly
-    ws, BAs, peakws, peakBAs, mug = axial_spectra.main(
+    ws, BAs, peakws, peakBAs, mug, _ = axial_spectra.main(
         T_value=T,
         mu_value=mu,
         mq_value=mq,

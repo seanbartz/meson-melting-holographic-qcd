@@ -30,7 +30,7 @@ print(f"- Frequency points: {wcount}")
 # Run the calculation
 try:
     print("\nRunning direct calculation...")
-    ws, BAs, peakws, peakBAs, mug = axial_spectra.main(
+    ws, BAs, peakws, peakBAs, mug, _ = axial_spectra.main(
         T_value=T,
         mu_value=mu,
         mq_value=mq,

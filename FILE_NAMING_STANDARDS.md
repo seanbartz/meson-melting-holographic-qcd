@@ -84,7 +84,7 @@ This document defines the standardized file naming conventions used throughout t
 ### Example Conversions
 ```
 OLD: phase_diagram_improved_ml13.0_lambda16.0.png  
-NEW: phase_diagram_improved_mq_13.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.png
+NEW: phase_diagram_improved_mq_13.0_lambda1_16.0_gamma_-22.4_lambda4_4.2.png
 
 OLD: axial_melting_data_mq9.0_lambda7.4.csv
 NEW: axial_melting_data_mq_9.0_lambda1_7.4_gamma_-22.6_lambda4_4.2.csv

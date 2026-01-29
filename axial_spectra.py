@@ -34,6 +34,8 @@ ucount = 1000
 
 # Global variable for chi interpolation
 chi_interp = None
+# Track whether the most recent run loaded cached data
+last_used_cache = False
 
 # Default chiral field for when interpolation not available
 def default_chi(u, mq_value=None):
@@ -793,10 +795,86 @@ def plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot=True, lambd
     else:
         plt.close()  # Close the figure to free memory
 
+def _format_param(value):
+    """Format parameter with consistent decimal places for file naming."""
+    if value == int(value):
+        return f"{value:.1f}"
+    return f"{value:.1f}"
+
+def _spectral_data_paths(T, mu, mq, lambda1):
+    """Return standardized filenames for spectral, peaks, and params data."""
+    data_dir = os.path.join('mu_g_440', 'axial_data')
+    t_str = _format_param(T)
+    mu_str = _format_param(mu)
+    mq_str = _format_param(mq)
+    lambda1_str = _format_param(lambda1)
+    spectral_filename = os.path.join(
+        data_dir,
+        f"axial_spectral_data_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
+    )
+    peaks_filename = os.path.join(
+        data_dir,
+        f"axial_peaks_data_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
+    )
+    params_filename = os.path.join(
+        data_dir,
+        f"axial_params_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
+    )
+    return data_dir, spectral_filename, peaks_filename, params_filename
+
+def _legacy_spectral_data_paths(T, mu, mq, lambda1):
+    """Return legacy filenames for spectral, peaks, and params data (no underscores, lambda label)."""
+    data_dir = os.path.join('mu_g_440', 'axial_data')
+    t_str = _format_param(T)
+    mu_str = _format_param(mu)
+    mq_str = _format_param(mq)
+    lambda1_str = _format_param(lambda1)
+    spectral_filename = os.path.join(
+        data_dir,
+        f"axial_spectral_data_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
+    )
+    peaks_filename = os.path.join(
+        data_dir,
+        f"axial_peaks_data_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
+    )
+    params_filename = os.path.join(
+        data_dir,
+        f"axial_params_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
+    )
+    return data_dir, spectral_filename, peaks_filename, params_filename
+
+def load_cached_data(T, mu, mq, lambda1):
+    """Load cached spectral data if all required files exist."""
+    candidates = [
+        _spectral_data_paths(T, mu, mq, lambda1),
+        _legacy_spectral_data_paths(T, mu, mq, lambda1),
+    ]
+    for data_dir, spectral_filename, peaks_filename, params_filename in candidates:
+        if os.path.exists(spectral_filename) and os.path.exists(peaks_filename):
+            break
+    else:
+        return None
+
+    spectral_data = pd.read_csv(spectral_filename)
+    peaks_data = pd.read_csv(peaks_filename)
+
+    ws = spectral_data['omega'].to_numpy()
+    BAs = spectral_data['spectral_function_real'].to_numpy() + 1j * spectral_data['spectral_function_imag'].to_numpy()
+    peakws = peaks_data['peak_omega'].to_numpy()
+    peakBAs = peaks_data['peak_spectral_function_real'].to_numpy() + 1j * peaks_data['peak_spectral_function_imag'].to_numpy()
+
+    if os.path.exists(params_filename):
+        params_data = pd.read_csv(params_filename)
+        mug = float(params_data['mu_g'].iloc[0])
+    else:
+        mug, _, _, _, _, _, _, _ = calculate_variables(lambda1, T, mu)
+
+    return ws, BAs, peakws, peakBAs, mug
+
 def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
     """Save the spectral data and peak data to CSV files in a lambda1 subfolder (truncated to 1 decimal place)"""
     # Ensure data directory exists in mu_g_440 directory (no further subfolders)
-    data_dir = os.path.join('mu_g_440', 'axial_data')
+    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1)
     os.makedirs(data_dir, exist_ok=True)
     
     # Save spectral data
@@ -806,7 +884,6 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'spectral_function_imag': np.imag(BAs),
         'spectral_function_abs': np.abs(np.imag(BAs))
     })
-    spectral_filename = os.path.join(data_dir, f"axial_spectral_data_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     spectral_data.to_csv(spectral_filename, index=False)
     print(f"Spectral data saved to {spectral_filename}")
     
@@ -818,7 +895,6 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'peak_spectral_function_imag': np.imag(peakBAs),
         'peak_spectral_function_abs': np.abs(np.imag(peakBAs))
     })
-    peaks_filename = os.path.join(data_dir, f"axial_peaks_data_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     peaks_data.to_csv(peaks_filename, index=False)
     print(f"Peaks data saved to {peaks_filename}")
     
@@ -836,7 +912,6 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'z_h': [zh],
         'Q': [Q]
     })
-    params_filename = os.path.join(data_dir, f"axial_params_T_{T:.1f}_mu_{mu:.1f}_mq_{mq:.1f}_lambda1_{lambda1:.1f}.csv")
     params_data.to_csv(params_filename, index=False)
     print(f"Parameters saved to {params_filename}")
     
@@ -845,7 +920,7 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
 def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438, 
          mq_tolerance_value=0.01, wi_value=700, wf_value=2400, 
          wcount_value=1700, wresolution_value=0.1, ui_value=1e-2, uf_value=1-1e-4, 
-         expected_peaks=None, show_plot=True):
+         expected_peaks=None, show_plot=True, load_if_exists=False):
     """
     Main function to compute axial vector meson spectral functions
     
@@ -863,12 +938,13 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
         uf_value: Final u coordinate (default: 1-1e-4)
         expected_peaks: Expected number of peaks (default: None)
         show_plot: Whether to display the plot (default: True)
+        load_if_exists: Load cached data if available (default: False)
         
     Returns:
         Tuple of (ws, BAs, peakws, peakBAs, mug, sigma)
     """
     # Set global parameters
-    global T, mu, mq, mq_tolerance, wi, wf, wcount, wresolution, chi_interp
+    global T, mu, mq, mq_tolerance, wi, wf, wcount, wresolution, chi_interp, last_used_cache
     
     T = T_value
     mu = mu_value
@@ -879,6 +955,17 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     wcount = wcount_value
     wresolution = wresolution_value
     
+    last_used_cache = False
+    if load_if_exists:
+        cached = load_cached_data(T, mu, mq, lambda1_value)
+        if cached is not None:
+            ws, BAs, peakws, peakBAs, mug = cached
+            print("Loaded cached axial spectral data.")
+            last_used_cache = True
+            if show_plot:
+                plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot, lambda1=lambda1_value)
+            return (ws, BAs, peakws, peakBAs, mug, np.nan)
+
     print(f"Computing axial vector spectral function with parameters:")
     print(f"T = {T} MeV, μ = {mu} MeV, m_q = {mq}, λ₁ = {lambda1_value}")
     if expected_peaks is not None:
@@ -935,6 +1022,7 @@ if __name__ == "__main__":
     parser.add_argument('--no-plot', action='store_true', help='Do not display the plot')
     parser.add_argument('--sigma-out', type=str, help='Path to write sigma value as CSV')
     parser.add_argument('--normalize', action='store_true', help='Normalize spectrum by dividing by (ω/μ_g)^2')
+    parser.add_argument('--load-if-exists', action='store_true', help='Load cached spectral data if available')
 
     args = parser.parse_args()
     # Set normalization flag for plotting
@@ -953,7 +1041,8 @@ if __name__ == "__main__":
         ui_value=args.ui,
         uf_value=args.uf,
         expected_peaks=args.ep,
-        show_plot=not args.no_plot
+        show_plot=not args.no_plot,
+        load_if_exists=args.load_if_exists
     )
     # main now returns (ws, BAs, peakws, peakBAs, mug, sigma)
     *_, sigma = result
