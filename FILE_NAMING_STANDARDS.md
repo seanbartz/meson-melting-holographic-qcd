@@ -81,6 +81,9 @@ This document defines the standardized file naming conventions used throughout t
 - `parametervalue` → `parameter_value` (add underscores)
 - `phase_diagram_improved_ml` → `phase_diagram_improved_mq`
 
+### Migration Note
+Legacy axial data files in `mu_g_440/axial_data` were bulk-renamed to the new naming convention on 2026-01-29.
+
 ### Example Conversions
 ```
 OLD: phase_diagram_improved_ml13.0_lambda16.0.png  
