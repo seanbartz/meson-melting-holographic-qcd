@@ -491,7 +491,10 @@ def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lam
     global chi_interp
     
     try:
-        result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value)
+        # None -> T-independent physical cutoffs for the chiral solve. Deliberately
+        # decoupled from ui_value/uf_value, which set the spectral ODE domain: the
+        # chiral grid is then at least as wide, so chi_interp below still covers it.
+        result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, None, None)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         u_values = result["u_values"]

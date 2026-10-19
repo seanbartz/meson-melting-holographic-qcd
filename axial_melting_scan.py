@@ -38,9 +38,9 @@ def initialize_chiral_field_and_derivative(mq_value, mq_tolerance, T_value, mu_v
     try:
         # Pass v3 and v4 if provided, otherwise use defaults from chiral_solve_complete
         if v3 is not None and v4 is not None:
-            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value, v3=v3, v4=v4)
+            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, None, None, v3=v3, v4=v4)
         else:
-            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value)
+            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, None, None)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         chiral_derivatives = result["chiral_derivatives"]

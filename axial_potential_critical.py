@@ -21,7 +21,7 @@ def initialize_chiral_field_and_derivative(mq_value, mq_tolerance, T_value, mu_v
     global chi_interp, chi_prime_interp
     
     try:
-        result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value)
+        result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, None, None)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         chiral_derivatives = result["chiral_derivatives"]  # This should be available from chiral_solve_complete

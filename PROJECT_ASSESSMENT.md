@@ -37,7 +37,14 @@ File references use `file:line`.
    - Even at 388 the a₁ ground state is not reproduced: the model gives about 1513 MeV against 1230 MeV measured.
    - The zero-temperature calibration, which every finite-T claim rests on, has not been settled.
 
-4. **The low-temperature spectral functions are round-off noise.** *(Added 2026-10-19, §3.4b.)*
+4. **Cutoffs and tolerances were scheme-dependent in T; partly fixed.** *(Added 2026-10-19, §3.3b.)*
+   - `solve_ivp` ran at its default rtol = 1e-3. At the physical d₀ at T = 17 MeV that integration diverges.
+   - A fixed u_i means a physical UV cutoff z_i = u_i z_h drifting like 1/T, so the σ renormalization point moved with temperature: +3.5 MeV in σ^(1/3) at T = 17, and part of the low-T decline of σ(T) is that artifact rather than physics.
+   - The extraction index was pinned at u_i + 1e-3 regardless of u_i, so earlier u_i convergence tests were partly measuring nothing.
+   - Fixed: accurate tolerances by default, `physical_cutoffs(T, mu)`, extraction at u_i, `solver='legacy'` for reproducing old numbers.
+   - **Not** fixed by any coordinate choice: d ln m_q / d ln d₀ reaches 1e8 at T = 17 MeV, so the d₀ scan grid cannot resolve the σ(m_q) curve below T ≈ 100 MeV.
+
+5. **The low-temperature spectral functions are round-off noise.** *(Added 2026-10-19, §3.4b.)*
    - At T ≈ 17 MeV the true Im(B/A) below about 2 GeV is 10⁻³⁷ to 10⁻¹⁸ away from resonances. The current code returns 10⁻⁷ to 10⁻³ there.
    - The cause is that Im(B/A) is computed from a numerical Wronskian of two solutions that grow by about e⁶⁸. That Wronskian is wrong by up to a factor of 10²³.
    - So the "T ≈ 0" axial spectra in `Axial.ipynb` and the default T = 17 run of `axial_spectra.py` cannot be trusted below about 2 GeV.
@@ -195,6 +202,78 @@ What the table shows:
    - In `axial_melting_scan.py:189` a chiral failure counts as "melted".
    - Fix: failures should raise or be flagged. They must never become saved data.
 4. **Choice of solutions.** `sigma_of_T` pads with zeros and then filters `sigma != 0` (`chiral_solve_complete.py:514-515, 569-576`). That works but is fragile; return a list instead.
+
+### 3.3b Cutoff scheme and tolerances: measured, and partly fixed *(added 2026-10-19)*
+
+Question raised: is the low-T trouble caused by scaling the coordinate as
+u = z/z_h, so that the integration range drifts in physical units as z_h = 1/(πT)
+grows? Would rewriting the equations in u = μ_g z fix it?
+
+**The rewrite is not needed.** Within one solve z_h is a constant, so u = z/z_h
+and v = μ_g z differ by a constant factor and give identical solutions — the ODE
+only ever sees the product z_h·u = z (`chiral_solve_complete.py:254-255`,
+`axial_spectra.py:53-54`). The entire physical content of the coordinate choice
+is *where the two cutoffs sit*, and that can be set directly.
+
+**Measured error budget** (m_q = 9, λ₁ = 7.438, μ = 0, μ_g = 440, γ = −22.6;
+reproduce with `python diagnostics/cutoff_scheme_study.py --full`). d₀ is bisected
+to the physical solution at each T, so a correct solver must return m_q = 9:
+
+| source | T = 120 | T = 60 | T = 30 | T = 17 |
+|---|---|---|---|---|
+| (a) old `solve_ivp` defaults, m_q returned | 7.86 | 8.52 | 24.5 | **diverges** |
+| (b) σ^(1/3), fixed u_i = 1e-2 vs fixed z_i | 301.1 / 301.2 | 305.2 / 306.2 | 303.7 / 305.8 | 302.4 / 305.7 |
+| (c) m_q error at 1 − u_f = 1e-4 | <0.01% | <0.01% | 0.01% | **4.5%** |
+| (d) d ln m_q / d ln d₀ | 5.6e1 | 3.3e3 | 7.3e5 | **1.3e8** |
+
+1. **Tolerances dominate.** `solve_ivp` ran at its defaults (RK45, rtol = 1e-3,
+   atol = 1e-6). At the physical d₀ at T = 17 MeV that integration diverges
+   outright. The full pipeline still returned σ to ~0.1%, because it finds d₀
+   self-consistently with the same loose solver and the errors largely cancel —
+   that is luck, not robustness, and it will not survive multi-branch work (§3.1).
+2. **The UV cutoff drift is real and logarithmic.** This is the §3.3 missing
+   u³ ln u term seen from the other side: the extracted σ absorbs ζ c ln(z_h u_i),
+   worth about 3 MeV in σ^(1/3) per decade of z_i. With u_i fixed, z_i = u_i z_h
+   drifts like 1/T, so the renormalization point becomes a function of temperature.
+   End to end that is +0.18 MeV in σ^(1/3) at T = 120 and +3.47 MeV at T = 17 —
+   and it changes the *shape*: the old scheme gives a σ(T) that peaks near 60 MeV
+   and falls, the fixed-z_i scheme gives one that is flat below 60 MeV. **Part of
+   the low-T decline of σ(T) in existing results is a moving cutoff, not physics.**
+3. **The IR cutoff is worse than the UV one.** The horizon Taylor coefficients
+   grow like (μ_g z_h)², so a fixed 1 − u_f degrades fast. At T = 17 the old
+   1 − u_f = 1e-4 is 4.5% off in m_q; 1 − u_f = 1e-3 diverges. Measured
+   requirement for 0.1% accuracy scales as ((μ_g z_h)²)^(−5/3).
+4. **The real low-T obstruction is conditioning, and no coordinate fixes it.**
+   The whole physical range m_q = 1..100 MeV maps onto a d₀ window of width
+   7e-1 at T = 150 but **3e-7 at T = 17**, against a scan grid
+   `np.linspace(0, 10, 100)` of spacing 0.101. Below T ≈ 100–120 MeV the entire
+   σ(m_q) curve that `new_function` builds fits between two adjacent grid points.
+   The refinement loop in `initial_d0_mq` rescues the single m_q = 9 point, but
+   the multi-branch structure that §3.1 needs is not resolved.
+
+**What was changed**
+
+- `SOLVER_DEFAULT` (DOP853, rtol = 1e-10, atol = 1e-14) replaces the implicit
+  loose defaults. `solver='legacy'` reproduces the old behaviour exactly, and
+  `test_cutoff_scheme.py` pins the pre-change number at T = 120.
+- The extraction index was hard-wired to `i = 10`, which on a 10000-point grid
+  sits at u_i + 1.0e-3 *regardless of u_i*. So the "u_i = 1e-4" runs in
+  `critical_zoom_improved.py` and `map_phase_diagram_improved.py` were really
+  extracting at u ≈ 1.1e-3, and **the u_i convergence test in §3.3 line 2 was
+  partly measuring nothing.** It is now 0, i.e. u_i itself.
+- `physical_cutoffs(T, mu)`: u_i placed at a fixed z_i = 1/(40 GeV), and
+  1 − u_f = 5e-3·((μ_g z_h)²)^(−5/3), capped at 1e-4 so high-T runs are never
+  coarser than before. `ui=None, uf=None` selects it and is now the default in
+  the chiral and phase-diagram entry points.
+- A failed integration returns NaN instead of being silently re-gridded onto
+  `linspace(ui, uf, len(chi))`, which used to move the extraction point.
+
+**Still open.** Fixing z_i makes the scheme T-independent but does *not* make σ
+cutoff-independent — that needs the u³ ln u term of §3.3 added to the (χ, χ′)
+inversion. Until then σ carries a stated-scheme dependence on z_i. The
+conditioning problem (4) needs continuation along the σ(m_q) curve or a two-point
+BVP solve, not a new coordinate. Neither affects §3.4b, whose e^(2φ) cancellation
+is invariant under reparametrization.
 
 ### 3.4 HIGH: axial peak finding (Goal 1: not missing low-lying narrow peaks)
 

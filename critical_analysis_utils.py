@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from chiral_solve_complete import calculate_sigma_values
 
-def quick_sigma_scan(mq, mu, lambda1, T_range, ui=1e-4, uf=None, d0_lower=0, d0_upper=10, mq_tolerance=0.1):
+def quick_sigma_scan(mq, mu, lambda1, T_range, ui=None, uf=None, d0_lower=0, d0_upper=10, mq_tolerance=0.1):
     """
     Quick scan of sigma values across temperature range to get overview.
     
@@ -24,7 +24,9 @@ def quick_sigma_scan(mq, mu, lambda1, T_range, ui=1e-4, uf=None, d0_lower=0, d0_
     Returns:
         temperatures, sigma_values_array
     """
-    if uf is None:
+    # Leave both as None to use the T-independent physical cutoff scheme;
+    # only mirror uf from an explicitly supplied ui.
+    if uf is None and ui is not None:
         uf = 1 - ui
     
     if isinstance(T_range, tuple) and len(T_range) == 3:

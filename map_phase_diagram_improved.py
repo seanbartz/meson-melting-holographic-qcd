@@ -27,7 +27,7 @@ from critical_zoom_improved import critical_zoom_improved
 
 def map_phase_diagram_improved(mu_min, mu_max, mu_points, lambda1, ml, 
                               tmin=80, tmax=210, 
-                              ui=1e-4, uf=None,
+                              ui=None, uf=None,
                               d0_lower=0, d0_upper=10, mq_tolerance=0.1,
                               max_iterations=10, gamma=-22.4, lambda4=4.2,
                               output_file=None, plot_results=True, display_plot=True):
@@ -64,7 +64,9 @@ def map_phase_diagram_improved(mu_min, mu_max, mu_points, lambda1, ml,
     
     print(f"Detected {cpu_count} CPU cores - using {numtemp} temperature points per iteration")
     
-    if uf is None:
+    # Leave both as None to use the T-independent physical cutoff scheme;
+    # only mirror uf from an explicitly supplied ui.
+    if uf is None and ui is not None:
         uf = 1 - ui
     
     # Convert gamma and lambda4 to internal v3 and v4 parameters
