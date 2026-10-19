@@ -251,6 +251,16 @@ to the physical solution at each T, so a correct solver must return m_q = 9:
    The refinement loop in `initial_d0_mq` rescues the single m_q = 9 point, but
    the multi-branch structure that §3.1 needs is not resolved.
 
+   Worked example, after both fixes below. A σ(T) sweep on the new scheme is
+   smooth to ~0.2 MeV except at T = 54.846 MeV, where the pipeline returns
+   σ^(1/3) = 313.234 against a bisection reference of 306.144. It is not noise —
+   it reproduces exactly — it is the linear `interp1d` in `process_mq_target`
+   spanning a bracket on a steeply curved m_q(d₀): it lands on d₀ = 1.914958
+   instead of 1.916980. A 0.1% error in d₀ becomes 2.3% in σ^(1/3). At T = 60
+   the whole m_q = 1..100 window is only 3.8e-3 wide in d₀, so that miss is
+   about half the window. Tolerances and cutoffs cannot help here; the bracket
+   itself has to be solved, not interpolated across.
+
 **What was changed**
 
 - `SOLVER_DEFAULT` (DOP853, rtol = 1e-10, atol = 1e-14) replaces the implicit
