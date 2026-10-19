@@ -1,6 +1,6 @@
 # Project Assessment: Status, Corrections, Efficiency, and Path to a PRD Paper
 
-*Assessment date: 2026-10-18. Covers `main` at commit `2a755a4`. No code was changed for this review.*
+*Assessment date: 2026-10-18 (updated 2026-10-19 with the numba and Wronskian findings). Covers `main` at commit `2a755a4`. No code was changed for this review.*
 
 This document reviews the whole repository against the goals in `ScienceGoals.md`. It covers:
 
@@ -36,6 +36,12 @@ File references use `file:line`.
    - The notebooks that compare with experiment use **μ_g = 388 MeV** (`Axial.ipynb`, `Vector_Spectra.ipynb`: `return 388 #440`). Only with 388 does the ρ come out at 775 MeV; with 440 the ρ sits at 880 MeV.
    - Even at 388 the a₁ ground state is not reproduced: the model gives about 1513 MeV against 1230 MeV measured.
    - The zero-temperature calibration, which every finite-T claim rests on, has not been settled.
+
+4. **The low-temperature spectral functions are round-off noise.** *(Added 2026-10-19, §3.4b.)*
+   - At T ≈ 17 MeV the true Im(B/A) below about 2 GeV is 10⁻³⁷ to 10⁻¹⁸ away from resonances. The current code returns 10⁻⁷ to 10⁻³ there.
+   - The cause is that Im(B/A) is computed from a numerical Wronskian of two solutions that grow by about e⁶⁸. That Wronskian is wrong by up to a factor of 10²³.
+   - So the "T ≈ 0" axial spectra in `Axial.ipynb` and the default T = 17 run of `axial_spectra.py` cannot be trusted below about 2 GeV.
+   - There is an exact closed-form fix that is also twice as fast (§3.4b), and numba speeds up the axial solve by about 70× (§4).
 
 **Distance to a paper:** the infrastructure is perhaps 70% done. The validated physics is perhaps 15–20% done.
 - One clean critical-endpoint bracket exists, from the cluster run in `batch_990_5.out`:
@@ -209,6 +215,55 @@ What the table shows:
   - The axial UV series a₂ is truncated at u⁴ (`axial_spectra.py:357-364`), but h₅–h₇ are still computed every time.
   - The horizon BC is leading order only (`psi_m`). At low T, z_h is large, and the correction is about (1−u_f)·2μ_g²z_h² ≈ 1% at T = 17 MeV. Check convergence in u_f, or add the next order.
 
+### 3.4b CRITICAL: low-temperature spectral functions are dominated by round-off *(added 2026-10-19)*
+
+**Where it is.** `BA()` in `axial_spectra.py:426-488`, and the identical structure in `vector_spectra.py:209-272`.
+
+**What the code does.** It integrates the two UV solutions ψ₁ (normalizable) and ψ₂ (non-normalizable) to u_f, then forms
+
+B/A = (ψ_m ψ₂′ − ψ_m′ ψ₂) / (ψ_m ψ₁′ − ψ_m′ ψ₁).
+
+**Why it fails at low T.** Some algebra shows the imaginary part is
+
+Im(B/A) = Im(ψ_m′ ψ_m*) · W(ψ₁, ψ₂) / |D|²,
+
+where W = ψ₁ψ₂′ − ψ₂ψ₁′ is the Wronskian and D is the denominator above.
+- At low T the dilaton is large at the horizon: (μ_g z_h)² ≈ 68 at T = 17 MeV. Both ψ₁ and ψ₂ therefore grow by about e⁶⁸.
+- W is computed numerically as the difference of two products of size about e¹³⁶, so it is mostly cancellation error.
+
+**Test.** I ran this in scratch space, not in the repo: μ_g = 440, m_q = 9, λ₁ = 7.438, μ = 0, γ = −22.6. "Exact formula" means the closed form given below.
+
+| ω (MeV) | current code, T = 17 | exact formula, T = 17 | W_numerical / W_exact, T = 17 | current code, T = 60 | exact formula, T = 60 |
+|---|---|---|---|---|---|
+| 800 | −1.4e-6 | −1.6e-37 | −8.6e23 | −8.11e-7 | −9.80e-7 |
+| 1000 | 1.4e-5 | −2.3e-34 | 1.2e21 | −1.09e-5 | −1.20e-5 |
+| 1250 | 6.0e-5 | −5.8e-30 | 4.3e16 | −4.27e-4 | −4.28e-4 |
+| 1512.7 | 4.1e-7 | −1.7e-24 | −8.3e10 | −5.32e-2 | −5.32e-2 |
+| 1700 | −8.6e-4 | −1.4e-18 | 9.6e6 | −230.2 | −230.2 |
+| 2052 | 2.0e-4 | −4.8e-12 | 3.3 | −34.19 | −34.19 |
+| 2300 | −1.19e-3 | −1.22e-3 | 1.0 | −125.6 | −125.6 |
+
+What the table shows:
+- At T = 17 MeV the current output is noise everywhere below about 2.3 GeV. It even has the wrong sign at some ω. Tightening the tolerance of the direct method does not help either: it gives values of order ±1e-13 with random sign, which is still noise.
+- At T = 60 MeV, where (μ_g z_h)² ≈ 5, all methods agree. The only difference is a 10–20% error in the current code at low ω, where the spectrum is small.
+- The unexplained low-ω structures in `Axial.ipynb`, and the low-T "peaks" behind the T = 0 comparison, are most likely this noise. That notebook run used μ_g = 388 and T = 18, which has the same conditioning problem.
+
+**Fix (exact, and cheaper).** W satisfies W′ = (1/u − f′/f + φ′) W, so
+
+W(u_f) = W(u_i) · (u_f/u_i) · (f(u_i)/f(u_f)) · exp[φ(u_f) − φ(u_i)],
+
+with W(u_i) taken from the UV series. With ψ_m = (1−u)^c and c = −iωz_h/(2(2−Q²)), this gives |ψ_m| = 1 and Im(ψ_m′ψ_m*) = k ≡ ωz_h/[2(2−Q²)(1−u_f)]. Therefore
+
+**Im(B/A) = k · W(u_f) / (ψ₁′(u_f)² + k² ψ₁(u_f)²).**
+
+- Only **one** integration (ψ₁) is needed, so the cost halves.
+- The denominator is a sum of squares, so there is no cancellation.
+- Where the direct method is well conditioned, the two agree to all printed digits (T = 60 columns above).
+
+**What remains even after the fix.** At low T the resonances are exponentially narrow, about e^(−2φ(1)) wide. A scan on a 1 MeV grid with the exact formula at T = 17 MeV finds only 3 local maxima between 700 and 2400 MeV (1718, 2194 and 2328 MeV). The lower states are far too narrow for *any* real-ω grid to see.
+
+This is Goal 1 ("not missing a low-lying narrow peak") in its sharpest form. At low T, masses must come from a quasinormal-mode or eigenvalue search: the condition ψ₁(u → 1) → 0, or the T = 0 Schrödinger problem. Spectral-function scans are only meaningful once (μ_g z_h)² is small enough that the peaks have visible width.
+
 ### 3.5 HIGH: melting criteria disagree between channels
 
 - **Axial** (`axial_melting_scan.py:195-206`): melted when the Schrödinger potential has no extremum.
@@ -292,8 +347,20 @@ These are ordered by expected payoff. The first four probably make the overall w
    - That makes temperature scans cheap and gives branch tracking, and so hysteresis, for free.
 3. **Replace the 100-target `mq_overlay` reconstruction** (`chiral_solve_complete.py:453-477`) with direct root finding. Bracket the sign changes of m_q(d₀) − m_q,target on the coarse d₀ scan, then call `brentq` on each bracket. That is about 10 solves per root instead of 100 re-solves plus interpolation.
    - One d₀ scan per (T, μ) gives σ(m_q) for *all* m_q. Use it both for the free-energy integral and for many m_q at once.
-4. **Axial spectrum, one integration instead of two.** Integrate the infalling solution from the horizon to the boundary and read off the retarded Green's function, or compute Im G from the conserved flux Im(ψ* ψ′). This halves the ODE count, and flux conservation along u gives a built-in accuracy check.
-5. **Faster RHS evaluation.** `Axial_eom` calls a scipy `interp1d` on every evaluation (`axial_spectra.py:399`). Precompute a `CubicSpline` of χ² once, or integrate χ together with the axial field. Optionally JIT the RHS with `numba`, or vectorize over many ω at once with a fixed-step high-order integrator.
+4. **Axial and vector spectra, one integration instead of two.** Use the exact-Wronskian formula from §3.4b: Im(B/A) = k W(u_f)/(ψ₁′² + k²ψ₁²). It needs only ψ₁, which halves the ODE count, and it is also the correctness fix for low T.
+5. **Compile the ODE solves with numba** *(measured 2026-10-19)*. In the current code the solves are dominated by Python overhead. Per `axial_spectra.BA` call, about half the time is spent in scipy `interp1d` inside `Axial_eom` (`axial_spectra.py:399`), and most of the rest is per-step overhead in `solve_ivp`. Applying `@njit` to the right-hand side alone helps little, because `solve_ivp` itself is Python. The integrator has to be compiled too.
+   - I wrote a ~40-line Dormand–Prince 5(4) adaptive integrator in numba, using `np.interp` for χ(u). `numbalsoda` would also do, but it failed to build in the test environment.
+   - Timings on one core, T = 17 MeV:
+
+   | Solve | Current code | numba | Speedup |
+   |---|---|---|---|
+   | Axial B/A per ω (both solutions, rtol 1e-8) | 206 ms | 3.0 ms | **≈70×** |
+   | Chiral field per d₀ (current default tolerance, 10⁴ output points) | 9.8 ms | 4.4 ms | ≈2× |
+   | Chiral field per d₀ at rtol 1e-10 (the accuracy §3.3 needs) | 80 ms (scipy RK45) | 4.4 ms | **≈18×** |
+
+   - The chiral solve is limited by the forced output at 10,000 u-points. Saving only χ near u_i plus a coarse grid for the axial interpolation would make it faster still.
+   - The same check also shows that at the current default tolerance, scipy's χ(u[10]) is off by 5%. The numba run at rtol 1e-10 matches scipy at rtol 1e-10 to 6 digits.
+   - `vector_spectra.py` and `vector_eigenvalue_solver.py` have the same structure and should see similar gains.
 6. **Parallelism in one place.** Parallelize over the outermost independent axis: the (T, μ) or ω tasks. Make the inner calls explicitly serial (`n_jobs=1` parameters, not environment variables). Remove the nested `Pool` → `joblib(n_jobs=-1)` pattern.
 7. **Bookkeeping I/O.** `check_existing_calculation` reads the whole `sigma_calculations.csv` on every call (`chiral_solve_complete.py:44`). As the file grows this becomes noticeable. Load it once per process, or move to SQLite (also safer under concurrent cluster writes than `flock` on NFS).
 8. **Cluster hygiene.** Do not copy every CSV/PNG on every SLURM task. Remove the sinfo-based CPU heuristics, which parse the wrong field; a fixed `--cpus-per-task` is simpler and correct.
@@ -304,7 +371,7 @@ These are ordered by expected payoff. The first four probably make the overall w
 
 | # | Goal (from `ScienceGoals.md`) | Status | Blocking items |
 |---|---|---|---|
-| 1 | Accurate axial spectra; no missed low-lying narrow peak | Not verified. Unexplained structures at 741–1166 MeV in the notebook. | §3.4: peak-location bug, ω window, QNM check, cutoff convergence |
+| 1 | Accurate axial spectra; no missed low-lying narrow peak | **Low-T spectra are round-off noise** (§3.4b). Low-T resonances are too narrow for any real-ω grid. | §3.4b: exact-Wronskian formula, QNM or eigenvalue search at low T; §3.4: peak-location bug, ω window, cutoff convergence |
 | 2 | Load existing spectra; avoid duplicate work | Partly done (`--load-if-exists`) | §3.6: cache key collisions, missing params, σ = NaN, σ cache unused |
 | 3 | First-order transition visible in axial spectra | Not possible yet | §3.1: free energy and branch selection |
 | 4 | (m_q, λ₁) of the critical point from spectra | One CEP bracket (m_q = 12, λ₁ = 5.9). No map. Not linked to spectra. | §3.1, §3.3, §3.7; then a production scan |
@@ -330,6 +397,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 5. **Deliverable:** one command per observable (σ(T), T_c(μ), spectrum, melting line), with every parameter explicit and recorded in the output.
 
 ### Phase 1: numerical validation (Goal 1; the referee-proof foundation)
+0. **Do this first:** replace the direct B/A evaluation with the exact-Wronskian formula in `axial_spectra.py` and `vector_spectra.py` (§3.4b). At the same time, move the ODE right-hand sides and integrator to numba (§4.5). Then re-check every existing low-T spectrum.
 1. Chiral solver:
    - set tight tolerances;
    - add the u³ log u term to the (m_q, σ) extraction;
@@ -402,6 +470,23 @@ Today, item 1 is undecided, item 2 is incorrect in the first-order region, item 
 - the full (m_q, λ₁) CEP map left for a follow-up.
 
 ---
+
+## Appendix B: numba and Wronskian tests (2026-10-19)
+
+All tests ran in scratch space, outside the repository. They imported `axial_spectra` and `chiral_solve_complete` unchanged.
+
+**Background.** `axial_spectra.initialize_chiral_field` with T = 17 (or 60) MeV, μ = 0, m_q = 9, λ₁ = 7.438, u_i = 1e-2, u_f = 1 − 1e-4. The model defaults were γ = −22.6, λ₄ = 4.2, μ_g = 440.
+
+**Integrator.**
+- Fixed-coefficient Dormand–Prince 5(4) under `@njit`, with error control on an RMS norm with atol + rtol·max(|y|).
+- An optional output grid; the integrator lands exactly on each grid point.
+- Integration can run in either direction.
+- The axial state vector [ψ₁, ψ₁′, ψ₂, ψ₂′] is integrated in one pass. χ(u) comes in as arrays and is evaluated with `np.interp`.
+- The UV initial data come from the existing `axial_spectra.a_s`.
+
+**Comparisons.**
+- Axial: the current `axial_spectra.BA` (LSODA, rtol 1e-8), scipy DOP853 and LSODA at rtol 1e-12, numba at rtol 1e-8 and 1e-11, and the exact-Wronskian formula.
+- Chiral: the current `chiral_solve_IR` (RK45, default tolerance), scipy RK45 at rtol 1e-10, and numba at both tolerances, all from the same horizon data at d₀ = 0.5.
 
 ## Appendix A: how the tolerance and u_i test was run
 
