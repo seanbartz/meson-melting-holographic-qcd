@@ -19,7 +19,8 @@ import numpy as np
 
 from chiral_solve_complete import (
     MU_G, SOLVER_DEFAULT, SOLVER_LEGACY, Z_UV, blackness, calculate_sigma_values,
-    chiral_solve_IR, physical_cutoffs, resolve_cutoffs, solver_settings, v3, v4,
+    chiral_solve_IR, covering_cutoffs, physical_cutoffs, resolve_cutoffs,
+    solver_settings, v3, v4,
 )
 
 LAMBDA1 = 7.438
@@ -116,6 +117,90 @@ def test_legacy_end_to_end_unchanged():
     print("    OK: published numbers remain reproducible via solver='legacy'")
 
 
+def test_covering_cutoffs():
+    """The chiral grid must span a consumer's domain at every T.
+
+    The scheme's u_i = Z_UV/z_h grows with T and crosses the spectral codes'
+    u_i = 1e-2 near 127 MeV; above that a bare physical solve starts inside the
+    spectral domain and chi_interp extrapolates.
+    """
+    print("\n[6] covering_cutoffs")
+    spectral_ui, spectral_uf = 1e-2, 1 - 1e-4
+    crossed = False
+    for T in [17.0, 60.0, 120.0, 127.3, 200.0, 400.0]:
+        ui, uf = covering_cutoffs(T, 0.0, spectral_ui, spectral_uf)
+        pui, _ = physical_cutoffs(T, 0.0)
+        assert ui <= spectral_ui + 1e-15, f"T={T}: chi grid starts inside the domain"
+        assert uf >= spectral_uf - 1e-15, f"T={T}: chi grid ends inside the domain"
+        if pui > spectral_ui:
+            crossed = True
+            assert ui == spectral_ui, f"T={T}: widening did not engage"
+        else:
+            assert ui == pui, f"T={T}: widening engaged when it should not have"
+        print(f"    T={T:7.1f}  physical u_i={pui:.4e}  covering u_i={ui:.4e}")
+    assert crossed, "test range no longer spans the crossover; extend it"
+    # with no requirement, it must reduce to the plain scheme
+    assert covering_cutoffs(60.0, 0.0) == physical_cutoffs(60.0, 0.0)
+    print("    OK: grid always covers the consumer domain")
+
+
+def test_no_nan_escapes():
+    """A d0 range wide enough to contain failing integrations must not yield
+    NaN sigma, NaN d0, NaN chiral fields, or misaligned result lists."""
+    print("\n[7] NaN containment (d0_upper = 12, where integrations fail)")
+    # these d0 do fail at T = 17 MeV, which is what makes the range a real test
+    failing = [d for d in (6.0, 8.0, 10.0)
+               if not np.isfinite(chiral_solve_IR(d, LAMBDA1, 17.0, 0.0)[0])]
+    assert failing, "no failing d0 found; this guard is no longer exercising the path"
+    print(f"    failing d0 at T=17: {failing}")
+    for T in [17.0, 120.0]:
+        r = calculate_sigma_values(9.0, 0.1, T, 0.0, LAMBDA1, None, None, 0, 12,
+                                   v3, v4, log_results=False)
+        sig, d0s, fields = r["sigma_values"], r["d0_values"], r["chiral_fields"]
+        assert np.all(np.isfinite(sig)), f"T={T}: non-finite sigma {sig}"
+        assert np.all(np.isfinite(d0s)), f"T={T}: non-finite d0 {d0s}"
+        assert all(np.all(np.isfinite(c)) for c in fields), f"T={T}: non-finite chi"
+        assert len(fields) == len(sig) == len(d0s), \
+            f"T={T}: result lists misaligned {len(fields)}/{len(sig)}/{len(d0s)}"
+        print(f"    T={T:6.1f}  {len(sig)} solution(s), all finite and aligned")
+    print("    OK")
+
+
+def test_legacy_regrids_on_failure():
+    """solver='legacy' must reproduce the old behaviour bug for bug, including
+    the truncated-and-re-gridded return on early termination -- the garbage mq
+    that came back decided which d0 initial_d0_mq kept."""
+    print("\n[8] legacy regrid-on-failure")
+    assert solver_settings('legacy')['regrid_on_failure'] is True
+    assert solver_settings(None)['regrid_on_failure'] is False
+    for T in [17.0, 60.0, 120.0]:
+        mq_leg = chiral_solve_IR(6.0, LAMBDA1, T, 0.0, LEGACY_UI, LEGACY_UF,
+                                 v3, v4, solver='legacy')[0]
+        mq_def = chiral_solve_IR(6.0, LAMBDA1, T, 0.0, LEGACY_UI, LEGACY_UF,
+                                 v3, v4)[0]
+        print(f"    T={T:6.1f}  legacy mq={mq_leg:11.5g}   default mq={mq_def}")
+        assert np.isfinite(mq_leg), "legacy must still return the re-gridded value"
+        assert not np.isfinite(mq_def), "default must reject the failed solve"
+    print("    OK")
+
+
+def test_criticalzoom_cutoffs_are_concrete():
+    """criticalZoom.allSigmas is a self-contained odeint solver that feeds ui/uf
+    straight into np.linspace and the UV boundary condition, so the None
+    sentinel must never be used there."""
+    print("\n[9] criticalZoom cutoffs stay concrete")
+    import re
+    src = open('criticalZoom.py').read()
+    for name in ('ui', 'uf'):
+        m = re.search(rf'^\s*{name}\s*=\s*(.+)$', src, re.M)
+        assert m, f"could not find {name} assignment in criticalZoom.py"
+        val = m.group(1).strip()
+        assert 'None' not in val, \
+            f"criticalZoom.py sets {name} = {val}; np.linspace(None, ...) raises"
+        print(f"    {name} = {val}")
+    print("    OK")
+
+
 def main():
     print("=" * 70)
     print(f"Cutoff scheme regression tests   (mu_g = {MU_G}, Z_UV = {Z_UV} MeV^-1)")
@@ -123,7 +208,11 @@ def main():
     tests = [test_physical_cutoffs, test_resolve_cutoffs,
              test_tolerance_is_converged,
              test_legacy_end_to_end_unchanged,
-             test_physical_scheme_sigma]
+             test_physical_scheme_sigma,
+             test_covering_cutoffs,
+             test_no_nan_escapes,
+             test_legacy_regrids_on_failure,
+             test_criticalzoom_cutoffs_are_concrete]
     failed = 0
     for t in tests:
         try:

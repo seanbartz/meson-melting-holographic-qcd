@@ -105,9 +105,12 @@ def allSigmas(args):#,mu,ml,minsigma,maxsigma,a0,lambda1):
     limits of spatial variable z/zh. Should be close to 0 and 1, but 
     cannot go all the way to 0 or 1 because functions diverge there
     """
-    # None -> T-independent physical cutoffs (chiral_solve_complete.physical_cutoffs).
-    ui = None
-    uf = None
+    # NOTE: allSigmas is a self-contained UV->IR odeint solver and does not go
+    # through chiral_solve_complete, so the None sentinel for the physical cutoff
+    # scheme does not apply here -- these feed np.linspace and the UV boundary
+    # condition directly. Left on the legacy values.
+    ui = 1e-2
+    uf = 1-1e-4
     "Create the spatial variable mesh"
     umesh=100
     u=np.linspace(ui,uf,umesh)

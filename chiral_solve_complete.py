@@ -32,13 +32,20 @@ MU_G = 440.0
 # at u_i + 1.0e-3 regardless of u_i -- so any u_i below ~1e-3 was ignored and
 # convergence tests in u_i measured nothing. It is now 0, i.e. the cutoff u_i
 # itself.
+#
+# 'regrid_on_failure' reproduces a bug on purpose. When the integration stopped
+# early the old code returned the truncated arrays, which callers then re-gridded
+# onto linspace(ui, uf, len(chi)) -- silently moving the extraction point.
+# Runaway d0 values terminate early, and the garbage mq that came back decided
+# which d0 the |mq| > 150 filter in initial_d0_mq kept, so suppressing it changes
+# legacy results. It is therefore True only in SOLVER_LEGACY.
 SOLVER_DEFAULT = {'method': 'DOP853', 'rtol': 1e-10, 'atol': 1e-14,
-                  'extract_index': 0}
+                  'extract_index': 0, 'regrid_on_failure': False}
 
-# Exactly reproduces the pre-2026-10 behaviour. Kept for regression tests and
-# for reproducing published numbers; not for new results.
+# Reproduces the pre-2026-10 behaviour, bug for bug. Kept for regression tests
+# and for reproducing published numbers; not for new results.
 SOLVER_LEGACY = {'method': 'RK45', 'rtol': 1e-3, 'atol': 1e-6,
-                 'extract_index': 10}
+                 'extract_index': 10, 'regrid_on_failure': True}
 
 
 def solver_settings(solver=None):
@@ -104,6 +111,29 @@ def physical_cutoffs(T, mu, z_uv=Z_UV, mu_g_value=MU_G):
     gap = IR_GAP_COEFF * dilaton**IR_GAP_POWER
     gap = min(max(gap, IR_GAP_MIN), IR_GAP_MAX)
     return ui, 1.0 - gap
+
+
+def covering_cutoffs(T, mu, ui_needed=None, uf_needed=None):
+    """Physical-scheme cutoffs, widened to cover a consumer's own u domain.
+
+    The scheme's u_i = Z_UV/z_h grows with T and crosses the 1e-2 used by the
+    spectral codes at T = Z_UV^-1/pi ~ 127 MeV. Above that a bare physical
+    solve starts *inside* the spectral domain, and chi_interp (built with
+    fill_value="extrapolate") would extrapolate over tens of grid spacings in
+    the 1/u^3-weighted region the melting test examines. Widening the solve
+    costs nothing but keeps the interpolation honest.
+
+    Note the extraction point is the grid start, so where the widening bites
+    (T above ~127 MeV) the sigma renormalization point is ui_needed*z_h rather
+    than Z_UV. Decoupling extraction from the grid start would remove that;
+    see PROJECT_ASSESSMENT.md 3.3b.
+    """
+    ui, uf = physical_cutoffs(T, mu)
+    if ui_needed is not None:
+        ui = min(ui, ui_needed)
+    if uf_needed is not None:
+        uf = max(uf, uf_needed)
+    return ui, uf
 
 
 def resolve_cutoffs(T, mu, ui=None, uf=None):
@@ -399,10 +429,11 @@ def chiral_solve_IR(d0, lambda1, T, mu, ui=None, uf=None, v3=v3, v4=v4,
     sol = solve_ivp(chiral, [uf, ui], y0, t_eval=u_backward, args=(params,),
                     method=settings['method'], rtol=settings['rtol'],
                     atol=settings['atol'])
-    if sol.status != 0 or len(sol.t) != numpoints:
-        # The integration stopped early. The old code silently re-gridded the
-        # truncated output onto linspace(ui, uf, len(chi)), which quietly moved
-        # the extraction point; return NaN so the caller rejects this d0.
+    if ((sol.status != 0 or len(sol.t) != numpoints)
+            and not settings['regrid_on_failure']):
+        # The integration stopped early. Return NaN so the caller rejects this
+        # d0, rather than handing back a truncated array that gets re-gridded
+        # onto linspace(ui, uf, len(chi)) and quietly moves the extraction point.
         nan = np.full(numpoints, np.nan)
         return np.nan, nan, nan, u
     chi = sol.y[0][::-1]
@@ -489,7 +520,13 @@ def initial_d0_mq(T, mu, mq_target, lambda1, ui=None, uf=None, d0_array=None, v3
                                           n_jobs=-1, solver=solver)[0]
         mq_array = np.concatenate((mq_array[:-1], mq_new, mq_array[-1:]))
         d0_array = np.concatenate((d0_array[:-1], d0_new, d0_array[-1:]))
-        
+        # Same rejection as above. Without it a NaN from a failed integration
+        # enters mq_array, and from there np.min(mq_improved) in new_function,
+        # which makes the whole mq_overlay NaN.
+        keep = np.abs(mq_array) <= 150
+        d0_array = d0_array[keep]
+        mq_array = mq_array[keep]
+
     return d0_array, mq_array
 
 def process_mq_target(mq_target, d0_array, mq_improved, sigma_improved, lambda1, T, mu, ui, uf, v3, v4,
@@ -578,6 +615,16 @@ def new_function(lambda1, T, mu, mq_large, ui=None, uf=None, d0_lower=0, d0_uppe
         
         # Similarly for sigma_improved
         sigma_improved = zeta * (1 - 6 * chi0 * lambda3 + 3 * chip0 * u_int * lambda3 - sqrt_result) / (3 * u_int ** 3 * zh ** 3 * lambda3)
+
+    # Drop any d0 whose integration failed. np.min below, and the sign changes
+    # that sigma_of_T looks for, both treat a NaN as a usable value otherwise.
+    finite = np.isfinite(mq_improved) & np.isfinite(sigma_improved)
+    if not np.all(finite):
+        d0_array = d0_array[finite]
+        mq_improved = mq_improved[finite]
+        sigma_improved = sigma_improved[finite]
+    if len(mq_improved) == 0:
+        return np.array([]), np.array([]), np.array([])
 
     # Run process_mq_target in parallel
     numMass = 100
@@ -714,6 +761,17 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui=None, uf=N
             
     valid_sigma_values = [sigma_values[i] for i in non_zero_indices]
     valid_d0_approx_list = [d0_approx_list[i] for i in non_zero_indices]
+
+    # A NaN sigma is not a solution. sigma_of_T interpolates across brackets
+    # found with np.sign, which treats NaN as a sign change, so one can get this
+    # far; the filter above only removes the zero padding.
+    finite = [i for i, (sg, d0) in enumerate(zip(valid_sigma_values, valid_d0_approx_list))
+              if np.isfinite(sg) and np.isfinite(d0)]
+    if len(finite) != len(valid_sigma_values):
+        print(f"Warning: discarded {len(valid_sigma_values) - len(finite)} non-finite "
+              f"sigma solution(s) at T={T}, mu={mu}")
+        valid_sigma_values = [valid_sigma_values[i] for i in finite]
+        valid_d0_approx_list = [valid_d0_approx_list[i] for i in finite]
     
     # Log the results if requested (and not already existing)
     if log_results:
@@ -726,12 +784,23 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui=None, uf=N
     chiral_derivatives = []
     u_values = None
     
-    for d0 in valid_d0_approx_list:
-        _, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4, solver)
+    kept_sigma, kept_d0 = [], []
+    for sigma, d0 in zip(valid_sigma_values, valid_d0_approx_list):
+        mq_chk, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4, solver)
+        if not (np.isfinite(mq_chk) and np.all(np.isfinite(chi))
+                and np.all(np.isfinite(chip))):
+            # An all-NaN chi raises no exception downstream; it would reach
+            # interp1d in the spectral codes and produce an all-NaN spectrum.
+            print(f"Warning: dropping d0={d0} at T={T}, mu={mu}: chiral field is "
+                  f"not finite")
+            continue
+        kept_sigma.append(sigma)
+        kept_d0.append(d0)
         chiral_fields.append(chi)
         chiral_derivatives.append(chip)
         if u_values is None:
             u_values = u
+    valid_sigma_values, valid_d0_approx_list = kept_sigma, kept_d0
     
     # Create and return the result dictionary
     result = {

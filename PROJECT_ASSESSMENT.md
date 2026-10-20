@@ -274,13 +274,45 @@ to the physical solution at each T, so a correct solver must return m_q = 9:
 - `physical_cutoffs(T, mu)`: u_i placed at a fixed z_i = 1/(40 GeV), and
   1 − u_f = 5e-3·((μ_g z_h)²)^(−5/3), capped at 1e-4 so high-T runs are never
   coarser than before. `ui=None, uf=None` selects it and is now the default in
-  the chiral and phase-diagram entry points.
+  the chiral and phase-diagram entry points, including the
+  `map_phase_diagram_improved.py` CLI. Note the pre-change function default
+  there was u_i = 1e-4, not 1e-2, so **phase-diagram results on the new scheme
+  are not continuous with the old ones** — only the T = 120 MeV chiral-solver
+  numbers are.
+- `covering_cutoffs(T, mu, ui_needed, uf_needed)` for consumers that build an
+  interpolation over their own u domain. The scheme's u_i = Z_UV/z_h *grows*
+  with T and crosses the 1e-2 used by the spectral codes at T = 1/(π Z_UV) ≈
+  127 MeV; above that a bare physical solve starts inside the spectral domain
+  and `chi_interp` (`fill_value="extrapolate"`) extrapolates over tens of grid
+  spacings in the 1/u³-weighted region the melting test examines. The helper
+  widens the solve. `axial_spectra.py`, `axial_melting_scan.py` (default
+  T_start = 200 MeV, i.e. above the crossover) and `axial_potential_critical.py`
+  use it.
 - A failed integration returns NaN instead of being silently re-gridded onto
-  `linspace(ui, uf, len(chi))`, which used to move the extraction point.
+  `linspace(ui, uf, len(chi))`, which used to move the extraction point. The
+  NaN is then rejected in `initial_d0_mq` (both filter sites), in
+  `new_function`, and in `calculate_sigma_values`, which also drops any d0
+  whose χ is not finite: `np.sign` treats NaN as a sign change, so a NaN σ
+  could otherwise be reported as a valid condensate, and an all-NaN χ reached
+  `interp1d` in the spectral codes without raising.
+- `solver='legacy'` carries `regrid_on_failure: True`, which restores the old
+  truncate-and-re-grid path on purpose. Runaway d0 terminate early, and the
+  garbage m_q that came back decided which d0 the |m_q| > 150 filter kept, so
+  suppressing it would have changed legacy results.
+- `criticalZoom.py` is deliberately **not** on the new scheme. `allSigmas` is a
+  self-contained UV→IR `odeint` solver that feeds u_i/u_f straight into
+  `np.linspace` and its own UV boundary condition, so the `None` sentinel is
+  meaningless there (and raises). It keeps u_i = 1e-2, u_f = 1 − 1e-4. It is
+  also the one place that already carries the u³ ln u term (`s3`).
 
 **Still open.** Fixing z_i makes the scheme T-independent but does *not* make σ
 cutoff-independent — that needs the u³ ln u term of §3.3 added to the (χ, χ′)
-inversion. Until then σ carries a stated-scheme dependence on z_i. The
+inversion. Until then σ carries a stated-scheme dependence on z_i. Separately,
+because the extraction point is the grid start, wherever `covering_cutoffs`
+widens the solve (T above ≈ 127 MeV for the spectral codes) the σ
+renormalization point is the consumer's u_i·z_h rather than Z_UV — so the
+scheme is T-independent only below the crossover. Decoupling the extraction
+point from the grid start would fix that and is the cleaner design. The
 conditioning problem (4) needs continuation along the σ(m_q) curve or a two-point
 BVP solve, not a new coordinate. Neither affects §3.4b, whose e^(2φ) cancellation
 is invariant under reparametrization.

@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 import glob
 import datetime
-from chiral_solve_complete import calculate_sigma_values
+from chiral_solve_complete import calculate_sigma_values, covering_cutoffs
 
 # Global parameters (defaults that can be overridden)
 # mu = 0  # MeV, Chemical Potential
@@ -491,10 +491,12 @@ def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lam
     global chi_interp
     
     try:
-        # None -> T-independent physical cutoffs for the chiral solve. Deliberately
-        # decoupled from ui_value/uf_value, which set the spectral ODE domain: the
-        # chiral grid is then at least as wide, so chi_interp below still covers it.
-        result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, None, None)
+        # T-independent physical cutoffs for the chiral solve, widened so the grid
+        # always covers the spectral domain [ui_value, uf_value]. Without the
+        # widening the scheme's u_i overtakes ui_value above T ~ 127 MeV and
+        # chi_interp below (fill_value="extrapolate") would extrapolate.
+        chiral_ui, chiral_uf = covering_cutoffs(T_value, mu_value, ui_value, uf_value)
+        result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, chiral_ui, chiral_uf)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         u_values = result["u_values"]

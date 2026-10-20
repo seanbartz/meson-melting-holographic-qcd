@@ -517,8 +517,12 @@ def main():
     parser.add_argument('-tmax', type=float, default=210.0, help='Maximum temperature for search in MeV (default: 210.0)')
     
     # Integration parameters
-    parser.add_argument('-ui', type=float, default=1e-2, help='Lower integration bound (default: 1e-2)')
-    parser.add_argument('-uf', default=1-1e-4, type=float, help='Upper integration bound (default: 1-1e-4)')
+    parser.add_argument('-ui', type=float, default=None,
+                        help='Lower (UV) integration bound. Default: the T-independent '
+                             'physical scheme, u_i = Z_UV/z_h (chiral_solve_complete.physical_cutoffs)')
+    parser.add_argument('-uf', type=float, default=None,
+                        help='Upper (IR) integration bound. Default: the physical scheme, '
+                             'which shrinks the horizon gap as (mu_g z_h)^2 grows')
     
     # Search parameters
     parser.add_argument('-d0lower', type=float, default=0.0, help='Lower bound for d0 search (default: 0.0)')
