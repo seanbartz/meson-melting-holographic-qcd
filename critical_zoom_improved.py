@@ -213,7 +213,7 @@ def order_checker(tmin, tmax, numtemp, mq, mu, lambda1, ui, uf, d0_lower=0, d0_u
     
     return tmin_new, tmax_new, minsigma_new, maxsigma_new, order, temps, truesigma, Tc
 
-def critical_zoom_improved(tmin, tmax, numtemp=None, mq=9, mu=0, lambda1=5.3, ui=1e-4, uf=None, 
+def critical_zoom_improved(tmin, tmax, numtemp=None, mq=9, mu=0, lambda1=5.3, ui=None, uf=None, 
                           d0_lower=0, d0_upper=10, mq_tolerance=0.1, max_iterations=10, v3=-22.6/(6*np.sqrt(2)), v4=4.2):
     """
     Iteratively zoom in on the critical point until first-order transition is found.
@@ -240,7 +240,9 @@ def critical_zoom_improved(tmin, tmax, numtemp=None, mq=9, mu=0, lambda1=5.3, ui
         numtemp = os.cpu_count()
         print(f"Auto-setting numtemp to {numtemp} (number of CPU cores) for optimal parallelization")
     
-    if uf is None:
+    # Leave both as None to use the T-independent physical cutoff scheme;
+    # only mirror uf from an explicitly supplied ui.
+    if uf is None and ui is not None:
         uf = 1 - ui
     
     order = 2
@@ -398,8 +400,9 @@ if __name__ == '__main__':
     lambda1 = 5.3  # Lambda1 parameter
     
     # Integration parameters
-    ui = 1e-4      # Lower integration bound
-    uf = 1 - 1e-4  # Upper integration bound
+    # None -> T-independent physical cutoffs (chiral_solve_complete.physical_cutoffs).
+    ui = None      # Lower (UV) integration bound
+    uf = None      # Upper (IR) integration bound
     
     # Search parameters
     d0_lower = 0

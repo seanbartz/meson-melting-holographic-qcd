@@ -28,7 +28,7 @@ def example_single_point():
     # Run the improved critical zoom
     order, iterations, sigma_list, temps_list, Tc = critical_zoom_improved(
         tmin, tmax, numtemp, mq, mu, lambda1,
-        ui=1e-4, uf=1-1e-4, max_iterations=8
+        ui=None, uf=None, max_iterations=8
     )
     
     # Plot and save results
@@ -133,7 +133,7 @@ def example_detailed_zoom():
     
     order, iterations, sigma_list, temps_list, Tc = critical_zoom_improved(
         tmin, tmax, numtemp, mq, mu, lambda1,
-        ui=1e-4, uf=1-1e-4, 
+        ui=None, uf=None,
         max_iterations=12,  # Allow more iterations
         mq_tolerance=0.05   # Tighter tolerance
     )

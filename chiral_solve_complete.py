@@ -14,6 +14,136 @@ import fcntl  # For file locking
 v4 = 4.2
 v3 = -22.6/(6*np.sqrt(2))
 
+# Confinement scale (MeV). Used by the dilaton and by the cutoff scheme below.
+MU_G = 440.0
+
+# ---------------------------------------------------------------------------
+# Integration tolerances
+# ---------------------------------------------------------------------------
+# solve_ivp's defaults (RK45, rtol=1e-3, atol=1e-6) are far too loose for this
+# problem. The map d0 -> mq is exponentially ill conditioned at low T
+# (d ln mq / d ln d0 grows from ~6e1 at T = 120 MeV to ~1e8 at T = 17 MeV), so
+# the integration has to supply the digits the root find then consumes. At the
+# physical d0 for mq = 9 MeV, T = 17 MeV, the old defaults return mq ~ 2e5
+# instead of 9.
+#
+# 'extract_index' is the index into the (u_i -> u_f) grid at which mq and sigma
+# are read off. It used to be hard-wired to 10, which on a 10000-point grid sits
+# at u_i + 1.0e-3 regardless of u_i -- so any u_i below ~1e-3 was ignored and
+# convergence tests in u_i measured nothing. It is now 0, i.e. the cutoff u_i
+# itself.
+#
+# 'regrid_on_failure' reproduces a bug on purpose. When the integration stopped
+# early the old code returned the truncated arrays, which callers then re-gridded
+# onto linspace(ui, uf, len(chi)) -- silently moving the extraction point.
+# Runaway d0 values terminate early, and the garbage mq that came back decided
+# which d0 the |mq| > 150 filter in initial_d0_mq kept, so suppressing it changes
+# legacy results. It is therefore True only in SOLVER_LEGACY.
+SOLVER_DEFAULT = {'method': 'DOP853', 'rtol': 1e-10, 'atol': 1e-14,
+                  'extract_index': 0, 'regrid_on_failure': False}
+
+# Reproduces the pre-2026-10 behaviour, bug for bug. Kept for regression tests
+# and for reproducing published numbers; not for new results.
+SOLVER_LEGACY = {'method': 'RK45', 'rtol': 1e-3, 'atol': 1e-6,
+                 'extract_index': 10, 'regrid_on_failure': True}
+
+
+def solver_settings(solver=None):
+    """Resolve a solver spec (None, 'default', 'legacy', or a dict) to a dict."""
+    if solver is None or solver == 'default':
+        return dict(SOLVER_DEFAULT)
+    if solver == 'legacy':
+        return dict(SOLVER_LEGACY)
+    if isinstance(solver, dict):
+        settings = dict(SOLVER_DEFAULT)
+        settings.update(solver)
+        return settings
+    raise ValueError(f"unrecognised solver spec: {solver!r}")
+
+
+# ---------------------------------------------------------------------------
+# Cutoff scheme
+# ---------------------------------------------------------------------------
+# u = z/z_h is a convenient coordinate but a bad place to fix cutoffs, because
+# z_h = 1/(pi T) at mu = 0, so a fixed u_i means a physical UV cutoff
+# z_i = u_i*z_h that drifts like 1/T. sigma extracted from the leading UV
+# behaviour carries a residual ln(z_i) dependence (the lambda1*phi*chi term
+# sources a z^3 ln z piece that the inversion below does not subtract), worth
+# about 3 MeV in sigma^(1/3) per decade of z_i. Holding u_i fixed therefore
+# makes the renormalization scheme itself a function of T: between T = 120 and
+# T = 17 MeV that is ~1% in sigma^(1/3) (~3% in sigma), and it bends the shape
+# of the low-T tail of sigma(T).
+#
+# The fix is to hold the cutoffs fixed in physical units instead. Note this
+# needs no change to the equations of motion: within one solve z_h is a
+# constant, so u = z/z_h and v = mu_g*z differ by a constant factor and give
+# identical solutions. The only physical content of the coordinate choice is
+# where the two cutoffs sit.
+#
+# UV: z_i fixed at 1/(40 GeV). Chosen to sit in the window where the leading-
+# order inversion is accurate (truncation error in mq < 0.01%) but well above
+# the round-off floor of the sigma extraction, which divides by z_i^3 and goes
+# to noise below z_i ~ 1e-8 MeV^-1. At T = 120 MeV this reproduces the old
+# u_i = 1e-2 almost exactly, so high-T results are continuous with the old ones.
+Z_UV = 2.5e-5      # MeV^-1
+UI_MAX = 0.05      # sanity cap on u_i; only bites above T ~ 640 MeV
+
+# IR: the horizon Taylor expansion (d1, d2 below) carries coefficients that grow
+# like (mu_g z_h)^2, so a fixed 1-u_f degrades rapidly as T falls. At T = 17 MeV
+# the old 1-u_f = 1e-4 is 4.5% off in mq, and 1-u_f = 1e-3 diverges outright.
+# Measured requirement for 0.1% accuracy scales as ((mu_g z_h)^2)^(-5/3); the
+# coefficient below carries a safety factor of >2 against that measurement.
+IR_GAP_COEFF = 5.0e-3
+IR_GAP_POWER = -5.0/3.0
+IR_GAP_MAX = 1e-4   # never coarser than the old default
+IR_GAP_MIN = 1e-9   # the ODE has a regular singular point at u = 1
+
+
+def physical_cutoffs(T, mu, z_uv=Z_UV, mu_g_value=MU_G):
+    """Cutoffs (u_i, u_f) for a T-independent renormalization scheme.
+
+    u_i is placed at a fixed physical z_i, and the horizon gap 1-u_f is chosen
+    so the horizon Taylor expansion stays accurate as (mu_g z_h)^2 grows.
+    """
+    zh, _ = blackness(T, mu)
+    ui = min(z_uv/zh, UI_MAX)
+    dilaton = max((mu_g_value*zh)**2, 1e-12)
+    gap = IR_GAP_COEFF * dilaton**IR_GAP_POWER
+    gap = min(max(gap, IR_GAP_MIN), IR_GAP_MAX)
+    return ui, 1.0 - gap
+
+
+def covering_cutoffs(T, mu, ui_needed=None, uf_needed=None):
+    """Physical-scheme cutoffs, widened to cover a consumer's own u domain.
+
+    The scheme's u_i = Z_UV/z_h grows with T and crosses the 1e-2 used by the
+    spectral codes at T = Z_UV^-1/pi ~ 127 MeV. Above that a bare physical
+    solve starts *inside* the spectral domain, and chi_interp (built with
+    fill_value="extrapolate") would extrapolate over tens of grid spacings in
+    the 1/u^3-weighted region the melting test examines. Widening the solve
+    costs nothing but keeps the interpolation honest.
+
+    Note the extraction point is the grid start, so where the widening bites
+    (T above ~127 MeV) the sigma renormalization point is ui_needed*z_h rather
+    than Z_UV. Decoupling extraction from the grid start would remove that;
+    see PROJECT_ASSESSMENT.md 3.3b.
+    """
+    ui, uf = physical_cutoffs(T, mu)
+    if ui_needed is not None:
+        ui = min(ui, ui_needed)
+    if uf_needed is not None:
+        uf = max(uf, uf_needed)
+    return ui, uf
+
+
+def resolve_cutoffs(T, mu, ui=None, uf=None):
+    """Fill in whichever of (u_i, u_f) is None from the physical scheme."""
+    if ui is None or uf is None:
+        pui, puf = physical_cutoffs(T, mu)
+        ui = pui if ui is None else ui
+        uf = puf if uf is None else uf
+    return ui, uf
+
 def check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, 
                              v3_param, v4_param, input_tolerance=1e-10, calc_tolerance=1e-8, filename='sigma_calculations.csv'):
     """
@@ -263,13 +393,16 @@ def chiral(u, y, params):
             
     return derivs
 
-def chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3=v3, v4=v4):
+def chiral_solve_IR(d0, lambda1, T, mu, ui=None, uf=None, v3=v3, v4=v4,
+                    solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
+    settings = solver_settings(solver)
     numpoints = 10000
     u = np.linspace(ui, uf, numpoints)
     u_backward = np.linspace(uf, ui, numpoints)
 
     zeta = np.sqrt(3)/(2*np.pi)
-    mu_g = 440
+    mu_g = MU_G
     a0 = 0
     lambda3 = v3
     lambda4 = v4
@@ -293,7 +426,16 @@ def chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3=v3, v4=v4):
     params = v3, v4, lambda1, mu_g, a0, zh, q
     
     # Solve the EOM using solve_ivp
-    sol = solve_ivp(chiral, [uf, ui], y0, t_eval=u_backward, args=(params,))
+    sol = solve_ivp(chiral, [uf, ui], y0, t_eval=u_backward, args=(params,),
+                    method=settings['method'], rtol=settings['rtol'],
+                    atol=settings['atol'])
+    if ((sol.status != 0 or len(sol.t) != numpoints)
+            and not settings['regrid_on_failure']):
+        # The integration stopped early. Return NaN so the caller rejects this
+        # d0, rather than handing back a truncated array that gets re-gridded
+        # onto linspace(ui, uf, len(chi)) and quietly moves the extraction point.
+        nan = np.full(numpoints, np.nan)
+        return np.nan, nan, nan, u
     chi = sol.y[0][::-1]
     chip = sol.y[1][::-1]
 
@@ -314,9 +456,11 @@ def chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3=v3, v4=v4):
 
     return mq1, chi, chip, u
 
-def chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3=v3, v4=v4, n_jobs=-1):
+def chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui=None, uf=None, v3=v3, v4=v4,
+                             n_jobs=-1, solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
     results = Parallel(n_jobs=n_jobs)(
-        delayed(chiral_solve_IR)(d0, lambda1, T, mu, ui, uf, v3, v4) for d0 in d0_array
+        delayed(chiral_solve_IR)(d0, lambda1, T, mu, ui, uf, v3, v4, solver) for d0 in d0_array
     )
     # Unpack the results
     mq_array, chi_array, chip_array, u_array = zip(*results)
@@ -324,12 +468,16 @@ def chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3=v3, v4=v4, n_j
     # Fix the deprecation warning by specifying dtype=object
     return np.array(mq_array), np.array(chi_array, dtype=object), np.array(chip_array, dtype=object)
 
-def initial_d0_mq(T, mu, mq_target, lambda1, ui, uf, d0_array, v3=v3, v4=v4):
-    mq_array = chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3, v4, n_jobs=-1)[0]
+def initial_d0_mq(T, mu, mq_target, lambda1, ui=None, uf=None, d0_array=None, v3=v3, v4=v4,
+                  solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
+    mq_array = chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3, v4,
+                                        n_jobs=-1, solver=solver)[0]
 
     max_d0 = d0_array[-1]
-    # Find and remove indices where abs(mq_array) > 150
-    indices = np.where(np.abs(mq_array) > 150)[0]
+    # Find and remove runaway solutions, and any d0 whose integration failed
+    # (chiral_solve_IR now returns NaN rather than a silently re-gridded result)
+    indices = np.where(~(np.abs(mq_array) <= 150))[0]
     if len(indices) > 0:
         max_d0 = d0_array[indices[0]]
         # No need to check for multiple indices and try to index max_d0
@@ -351,10 +499,11 @@ def initial_d0_mq(T, mu, mq_target, lambda1, ui, uf, d0_array, v3=v3, v4=v4):
 
         d0_array = np.concatenate((d0_array, d0_new))
         # Calculate mq for new d0 values
-        mq_new = chiral_solve_IR_parallel(d0_new, lambda1, T, mu, ui, uf, v3, v4, n_jobs=-1)[0]
+        mq_new = chiral_solve_IR_parallel(d0_new, lambda1, T, mu, ui, uf, v3, v4,
+                                          n_jobs=-1, solver=solver)[0]
         mq_array = np.concatenate((mq_array, mq_new))
         
-        indices = np.where(np.abs(mq_array) > 150)[0]
+        indices = np.where(~(np.abs(mq_array) <= 150))[0]
         if len(indices) > 0:
             # Just take the first index, no need for further indexing
             max_d0 = d0_array[indices[0]]
@@ -367,13 +516,23 @@ def initial_d0_mq(T, mu, mq_target, lambda1, ui, uf, d0_array, v3=v3, v4=v4):
     # Refine if there's a large jump and we have enough points
     if len(mq_array) >= 2 and mq_array[-1] - mq_array[-2] > 5:
         d0_new = np.linspace(d0_array[-2], d0_array[-1], 10)[1:-1]
-        mq_new = chiral_solve_IR_parallel(d0_new, lambda1, T, mu, ui, uf, v3, v4, n_jobs=-1)[0]
+        mq_new = chiral_solve_IR_parallel(d0_new, lambda1, T, mu, ui, uf, v3, v4,
+                                          n_jobs=-1, solver=solver)[0]
         mq_array = np.concatenate((mq_array[:-1], mq_new, mq_array[-1:]))
         d0_array = np.concatenate((d0_array[:-1], d0_new, d0_array[-1:]))
-        
+        # Same rejection as above. Without it a NaN from a failed integration
+        # enters mq_array, and from there np.min(mq_improved) in new_function,
+        # which makes the whole mq_overlay NaN.
+        keep = np.abs(mq_array) <= 150
+        d0_array = d0_array[keep]
+        mq_array = mq_array[keep]
+
     return d0_array, mq_array
 
-def process_mq_target(mq_target, d0_array, mq_improved, sigma_improved, lambda1, T, mu, ui, uf, v3, v4):
+def process_mq_target(mq_target, d0_array, mq_improved, sigma_improved, lambda1, T, mu, ui, uf, v3, v4,
+                      solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
+    settings = solver_settings(solver)
     d0_list = d0_array.tolist()
     mq_list = mq_improved.tolist()
     sigma_list = sigma_improved.tolist()
@@ -386,9 +545,11 @@ def process_mq_target(mq_target, d0_array, mq_improved, sigma_improved, lambda1,
         
         d0_interp = interp1d(mq_approx, d0_approx)
         d0 = d0_interp(mq_target)
-        mq, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4)
+        mq, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4, solver)
+        if not np.isfinite(mq):
+            continue
 
-        i = 10
+        i = settings['extract_index']
         u = np.linspace(ui, uf, len(chip))
         u_int = u[i]
         chi0 = chi[i]
@@ -412,15 +573,20 @@ def process_mq_target(mq_target, d0_array, mq_improved, sigma_improved, lambda1,
         
     return np.array(d0_list), np.array(mq_list), np.array(sigma_list)
 
-def new_function(lambda1, T, mu, mq_large, ui, uf, d0_lower, d0_upper, v3=v3, v4=v4, numpoints=100):
+def new_function(lambda1, T, mu, mq_large, ui=None, uf=None, d0_lower=0, d0_upper=10,
+                 v3=v3, v4=v4, numpoints=100, solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
+    settings = solver_settings(solver)
     # Initial d0 and mq arrays
     d0_array = np.linspace(d0_lower, d0_upper, numpoints)
-    d0_array, mq_array = initial_d0_mq(T, mu, mq_large, lambda1, ui, uf, d0_array, v3, v4)
+    d0_array, mq_array = initial_d0_mq(T, mu, mq_large, lambda1, ui, uf, d0_array, v3, v4,
+                                       solver=solver)
 
     # Further processing to get mq_improved and sigma_improved
-    _, chis, chips = chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3, v4, n_jobs=-1)
+    _, chis, chips = chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3, v4,
+                                              n_jobs=-1, solver=solver)
 
-    i = 10
+    i = settings['extract_index']
     u = np.linspace(ui, uf, len(chips[0]))
     u_int = u[i]
     # print('u_int', u_int)  # Commented out the print statement
@@ -450,10 +616,20 @@ def new_function(lambda1, T, mu, mq_large, ui, uf, d0_lower, d0_upper, v3=v3, v4
         # Similarly for sigma_improved
         sigma_improved = zeta * (1 - 6 * chi0 * lambda3 + 3 * chip0 * u_int * lambda3 - sqrt_result) / (3 * u_int ** 3 * zh ** 3 * lambda3)
 
+    # Drop any d0 whose integration failed. np.min below, and the sign changes
+    # that sigma_of_T looks for, both treat a NaN as a usable value otherwise.
+    finite = np.isfinite(mq_improved) & np.isfinite(sigma_improved)
+    if not np.all(finite):
+        d0_array = d0_array[finite]
+        mq_improved = mq_improved[finite]
+        sigma_improved = sigma_improved[finite]
+    if len(mq_improved) == 0:
+        return np.array([]), np.array([]), np.array([])
+
     # Run process_mq_target in parallel
     numMass = 100
     mq_overlay = np.linspace(np.min(mq_improved), mq_large, numMass)
-    results = Parallel(n_jobs=-1)(delayed(process_mq_target)(mq_target, d0_array, mq_improved, sigma_improved, lambda1, T, mu, ui, uf, v3, v4) for mq_target in mq_overlay)
+    results = Parallel(n_jobs=-1)(delayed(process_mq_target)(mq_target, d0_array, mq_improved, sigma_improved, lambda1, T, mu, ui, uf, v3, v4, solver) for mq_target in mq_overlay)
 
     # Aggregate and sort results
     all_d0_arrays = [res[0] for res in results]
@@ -476,10 +652,13 @@ def new_function(lambda1, T, mu, mq_large, ui, uf, d0_lower, d0_upper, v3=v3, v4
 
     return mq_improved, sigma_improved, final_d0_array
 
-def sigma_of_T(mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, uf, v3=v3, v4=v4):
-    # uf = 1-ui
+def sigma_of_T(mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui=None, uf=None,
+               v3=v3, v4=v4, solver=None):
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
     mq_large = 2*mq_input
-    mq_improved, sigma_improved, d0_array = new_function(lambda1, T, mu, mq_large, ui, uf, d0_lower, d0_upper, v3, v4, numpoints=100)
+    mq_improved, sigma_improved, d0_array = new_function(lambda1, T, mu, mq_large, ui, uf,
+                                                         d0_lower, d0_upper, v3, v4,
+                                                         numpoints=100, solver=solver)
     
     # Find indices where mq_improved-mq_input changes sign
     indices = np.where(np.diff(np.sign(mq_improved-mq_input)))[0]
@@ -516,7 +695,7 @@ def sigma_of_T(mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, u
         
     return sigma_values, np.max(d0_array) if len(d0_array) > 0 else 0, np.min(d0_array) if len(d0_array) > 0 else 0, d0_approx_list
 
-def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower=0, d0_upper=10, v3=v3, v4=v4, log_results=True):
+def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui=None, uf=None, d0_lower=0, d0_upper=10, v3=v3, v4=v4, log_results=True, solver=None):
     """
     Calculate sigma values and corresponding chiral fields for a given quark mass.
     
@@ -532,10 +711,12 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
         Chemical potential
     lambda1 : float
         Lambda1 parameter
-    ui : float
-        Lower bound for u
-    uf : float
-        Upper bound for u (should be close to 1, e.g. 1-ui)
+    ui : float or None
+        Lower (UV) bound for u. None uses the T-independent physical scheme,
+        u_i = Z_UV/z_h -- see physical_cutoffs.
+    uf : float or None
+        Upper (IR) bound for u. None uses the physical scheme, which shrinks
+        the horizon gap 1-u_f as (mu_g z_h)^2 grows.
     d0_lower : float
         Lower bound for d0 search
     d0_upper : float
@@ -546,6 +727,9 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
         Chiral parameter v4 (default: global value)
     log_results : bool
         Whether to log the results to CSV file (default: True)
+    solver : None, 'legacy' or dict
+        Integration settings; see solver_settings. None uses the accurate
+        defaults, 'legacy' reproduces the pre-2026-10 behaviour.
         
     Returns:
     --------
@@ -553,6 +737,8 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
         Dictionary containing sigma values, chiral fields, and derivatives
     """
     
+    ui, uf = resolve_cutoffs(T, mu, ui, uf)
+
     # Check if we already have this calculation (avoid duplicate logging)
     if log_results:
         existing_calculation = check_existing_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper, v3, v4)
@@ -563,7 +749,8 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
     
     # Find the sigma values and d0 approximations
     sigma_values, d0_max, d0_min, d0_approx_list = sigma_of_T(
-        mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, uf, v3, v4
+        mq_input, mq_tolerance, T, mu, lambda1, d0_lower, d0_upper, ui, uf, v3, v4,
+        solver=solver
     )
     
     # Filter out zero sigma values (padding values)
@@ -574,6 +761,17 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
             
     valid_sigma_values = [sigma_values[i] for i in non_zero_indices]
     valid_d0_approx_list = [d0_approx_list[i] for i in non_zero_indices]
+
+    # A NaN sigma is not a solution. sigma_of_T interpolates across brackets
+    # found with np.sign, which treats NaN as a sign change, so one can get this
+    # far; the filter above only removes the zero padding.
+    finite = [i for i, (sg, d0) in enumerate(zip(valid_sigma_values, valid_d0_approx_list))
+              if np.isfinite(sg) and np.isfinite(d0)]
+    if len(finite) != len(valid_sigma_values):
+        print(f"Warning: discarded {len(valid_sigma_values) - len(finite)} non-finite "
+              f"sigma solution(s) at T={T}, mu={mu}")
+        valid_sigma_values = [valid_sigma_values[i] for i in finite]
+        valid_d0_approx_list = [valid_d0_approx_list[i] for i in finite]
     
     # Log the results if requested (and not already existing)
     if log_results:
@@ -586,12 +784,23 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
     chiral_derivatives = []
     u_values = None
     
-    for d0 in valid_d0_approx_list:
-        _, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4)
+    kept_sigma, kept_d0 = [], []
+    for sigma, d0 in zip(valid_sigma_values, valid_d0_approx_list):
+        mq_chk, chi, chip, u = chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3, v4, solver)
+        if not (np.isfinite(mq_chk) and np.all(np.isfinite(chi))
+                and np.all(np.isfinite(chip))):
+            # An all-NaN chi raises no exception downstream; it would reach
+            # interp1d in the spectral codes and produce an all-NaN spectrum.
+            print(f"Warning: dropping d0={d0} at T={T}, mu={mu}: chiral field is "
+                  f"not finite")
+            continue
+        kept_sigma.append(sigma)
+        kept_d0.append(d0)
         chiral_fields.append(chi)
         chiral_derivatives.append(chip)
         if u_values is None:
             u_values = u
+    valid_sigma_values, valid_d0_approx_list = kept_sigma, kept_d0
     
     # Create and return the result dictionary
     result = {
@@ -644,11 +853,13 @@ if __name__ == "__main__":
     T = 10
     mu = 0
     lambda1 = 7
-    ui = 1e-2
-    uf = 1 - 1e-4
+    # None -> the T-independent physical cutoff scheme (see physical_cutoffs).
+    ui = None
+    uf = None
     
     # Calculate sigma values and chiral fields
     result = calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf)
+    print("Cutoffs used:", physical_cutoffs(T, mu))
     
     # Print results
     print("Sigma values (MeV³):", result["sigma_values"])

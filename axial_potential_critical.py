@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from chiral_solve_complete import calculate_sigma_values
+from chiral_solve_complete import calculate_sigma_values, covering_cutoffs
 
 # Import necessary functions from axial_spectra.py
 from axial_spectra import (
@@ -21,7 +21,10 @@ def initialize_chiral_field_and_derivative(mq_value, mq_tolerance, T_value, mu_v
     global chi_interp, chi_prime_interp
     
     try:
-        result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value)
+        # Physical cutoffs, widened to cover [ui_value, uf_value] so the chi/chi'
+        # interpolations below never extrapolate (see covering_cutoffs).
+        chiral_ui, chiral_uf = covering_cutoffs(T_value, mu_value, ui_value, uf_value)
+        result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, chiral_ui, chiral_uf)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         chiral_derivatives = result["chiral_derivatives"]  # This should be available from chiral_solve_complete

@@ -18,7 +18,7 @@ import sys
 import os
 
 # Import necessary functions from our existing modules 
-from chiral_solve_complete import calculate_sigma_values
+from chiral_solve_complete import calculate_sigma_values, covering_cutoffs
 # from axial_spectra import (
 #     calculate_variables, mu_g, z_h, Q_func, lam_function,
 #     ui, uf  # Integration bounds
@@ -34,13 +34,18 @@ def initialize_chiral_field_and_derivative(mq_value, mq_tolerance, T_value, mu_v
     Initialize both chi and chi_prime interpolation functions
     """
     global chi_interp, chi_prime_interp
-    
+
+    # Physical cutoffs for the chiral solve, widened so the grid always covers
+    # [ui_value, uf_value]; the interpolations built below extrapolate otherwise
+    # above T ~ 127 MeV (see covering_cutoffs).
+    chiral_ui, chiral_uf = covering_cutoffs(T_value, mu_value, ui_value, uf_value)
+
     try:
         # Pass v3 and v4 if provided, otherwise use defaults from chiral_solve_complete
         if v3 is not None and v4 is not None:
-            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value, v3=v3, v4=v4)
+            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, chiral_ui, chiral_uf, v3=v3, v4=v4)
         else:
-            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, ui_value, uf_value)
+            result = calculate_sigma_values(mq_value, mq_tolerance, T_value, mu_value, lambda1_value, chiral_ui, chiral_uf)
         sigma_values = result["sigma_values"]
         chiral_fields = result["chiral_fields"]
         chiral_derivatives = result["chiral_derivatives"]
