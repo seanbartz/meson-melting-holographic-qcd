@@ -470,32 +470,57 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 
 ## 7. How close is a PRD paper?
 
-**What a referee would need:**
-1. a calibrated model;
-2. a correct phase structure (stable branch, ΔF-based T_c);
-3. converged spectra or QNMs;
-4. a clear new result.
+*(Rewritten 2026-11-05 to take the cluster data in §8 into account.)*
 
-Today:
-- item 1 is undecided;
-- item 2 is incorrect in the first-order region, although the cluster data show the T_c error is small (§8.4);
-- item 3 is unverified;
-- item 4 has a preliminary answer: no degeneracy below melting in the CEP region (§8.5).
+**What a referee would need, and where each item stands:**
+
+| Need | Status | Change since the cluster data |
+|---|---|---|
+| 1. A calibrated model | Undecided: μ_g = 440 or 388; the a₁ is about 280 MeV too high | None. No data address this. |
+| 2. A correct phase structure (stable branch, ΔF-based T_c) | Incorrect in the first-order region | **Less serious.** The T_c error is ≲ 0.5 MeV near the CEPs, and the CEP's μ does not move (§8.4). The fix still matters for branch-resolved spectra. |
+| 3. Converged spectra or QNMs | Unverified; the solver errors of §3.3 and §3.4b remain | None. Every cluster number must be recomputed. |
+| 4. A clear new result | **Preliminary answer exists** | The go/no-go gives no a₁–ρ degeneracy below melting in the CEP region (§8.5). The paper's story is largely settled. |
+
+**Overall distance.**
+- The infrastructure is about the same: roughly 70% done, plus a small new cost to set up the cluster environment (Python ≥ 3.10, and replacing the shared σ log).
+- The validated physics is still about 15–20% done. Nothing on the cluster is final.
+- **About half of the remaining *risk* is gone.** The open questions that could have reshaped the project are now answered at the scouting level:
+  - which parameter sets have a CEP, and where;
+  - whether the spinodal T_c is a large error;
+  - whether degeneracy happens before melting.
+- What remains is mostly well-defined execution: fix the solver, recompute a targeted set of points, confirm with QNMs, and write.
 
 **What a referee would see as new:**
-- Direct spectral signatures of a first-order chiral transition and a CEP: discontinuous axial peak positions and widths, and hysteresis.
-- Where the CEP sits relative to the meson melting lines, in a model with dilaton–chiral mixing (λ₁).
-- The answer to whether a₁–ρ degeneracy happens before melting. A negative answer would also be interesting, set against the reviewed paper.
+- A CEP map in a model with dilaton–chiral mixing, versus λ₁, γ and m_q. The scouting gives smooth trends and λ₁,c(μ = 0) ∈ (5.9, 6.0) at m_q = 12.
+- **Chiral restoration and the CEP occur in the melted phase.** At every CEP, T_melt^V(μ_CEP) < T_CEP. This is a clean negative answer to the degeneracy question, and it sets up the comparison with the reviewed paper.
+- **The axial melting line is locked to the chiral transition** (within ±1.5 MeV for γ ≤ −22.4). Under the current criterion, axial melting is a direct probe of chiral restoration.
+- Spectral signatures of a first-order transition: jumps in the axial peak positions and widths, and hysteresis.
+  - Near the CEPs the coexistence region is only ≲ 1 MeV wide, so these signatures will be hard to see there.
+  - **Use the strong-coupling sets (γ = −24, −26)**, whose hysteresis windows are 2–5 MeV.
 
-**Critical path:** Phase 0 → Phase 1 (items 1–3) → Phase 2 → Phase 3, item 3 (go/no-go). Once the go/no-go answer is in, the paper's story is fixed, and Phases 4–5 are mostly production and writing with tooling that already exists. The QNM solver (Phase 1, item 4) is the largest single piece of new code. It pays for itself in speed (§4.1) and in how credible the narrow-peak and degeneracy claims are.
+**Critical path (revised):**
+1. **Phase 0.** Python ≥ 3.10 on Obsidian; a σ store that is safe under concurrent writes; `model_params.py`; fix the flag and `capture_output` bugs.
+2. **Phase 1, items 0–3.** Exact-Wronskian spectra, the numba integrator, tight chiral tolerances and the log-term σ extraction, then the convergence checks. *This is now the bottleneck.*
+3. **Targeted recompute** with the fixed solver, instead of the Phase 4 survey:
+   - the 7 clean CEP sets on refined μ grids;
+   - a λ₁ bisection in (5.9, 6.0);
+   - μ_max ≈ 500 for the two edge cases;
+   - the γ = −22.4, λ₄ = 4.0 reference point;
+   - one λ₄ = 4.4 slice;
+   - warm-start each set from the cluster d₀ values.
+4. **QNM solver** (Phase 1, item 4). Use it to confirm the go/no-go at (12, 5.9, −22.4) and (9, 5.5, −20), and to compute masses and widths. If the ρ keeps Γ/M < 1 up to T_CEP, the story changes. This is the one remaining check that could overturn it.
+5. **Phase 2, reduced.** ΔF-based T_c and branch-resolved axial spectra, for one strong-|γ| set and the baseline CEP set.
+6. **Phase 3, item 1 (calibration)** can run alongside steps 3–5. The no-go conclusion holds at both μ_g values: μ_g = 388 lowers the vector line by 12%.
+7. **Writing.**
 
-**Suggested minimal first paper**, if you want to publish sooner:
-- one calibrated parameter set;
-- the corrected phase diagram with CEP and melting lines;
-- axial spectra or QNMs across the first-order and crossover regions;
-- the degeneracy go/no-go result;
-- γ/λ₄ sensitivity as a short section;
-- the full (m_q, λ₁) CEP map left for a follow-up.
+**Revised minimal first paper:**
+- the model, with the μ_g choice and its T = 0 masses (the a₁ discrepancy stated openly);
+- the corrected CEP map against λ₁ and γ at one or two values of m_q, with ΔF-based T_c;
+- vector and axial melting lines with a single criterion, cross-checked with QNMs;
+- the main result: restoration and the CEP sit in the melted phase, and axial melting is locked to T_χ;
+- first-order spectral signatures in one strong-|γ| set;
+- the comparison with the reviewed paper, including the Hawking–Page discussion (§3.9);
+- deferred to a follow-up: the full (m_q, λ₁, γ, λ₄) map and μ_g = 388 production.
 
 ---
 
