@@ -31,7 +31,7 @@ File references use `file:line`.
    - γ = −22.4 is the default in the phase-diagram tools. γ = −22.6 is hardcoded in the chiral solver default (`chiral_solve_complete.py:15`), in `axial_spectra.py:97` and in `critical_zoom_improved.py:91,217`.
    - **`axial_spectra.py` cannot take γ or λ₄ at all** (`main()` at `axial_spectra.py:920`; `calculate_sigma_values` is called without v3/v4 at line 494). So the goal "assess the effect of γ and λ₄ on meson spectra" is currently impossible.
    - Legacy data files were renamed with `gamma_-22.4` even though they were produced with −22.6 (`rename_cp_data_files.py:43`, `rename_axial_melting_files.py:106`, `fix_phase_plot_names.sh:60,77`). Their provenance is now mislabeled.
-   - **With γ = −22.6 chosen (see item 3), every γ = −22.4 dataset on the cluster is at the wrong γ.** This includes the baseline CEP set. The files are correctly labeled, but they have to be recomputed at −22.6. Since all of them need recomputing with the fixed solver anyway (§3.3), this adds almost no cost.
+   - **The cluster's γ = −22.4 data are not wasted.** The paper's reference point is γ = −22.6 (see item 3), and the plan is to scan the parameters around it. The −22.4 sets are a correctly labeled scan point next to the reference, alongside −18, −20, −24 and −26. What is missing is the reference point itself, γ = −22.6, which has to be added to the scan.
    - *Cluster check (§8.4):* none of the Obsidian data is mislabeled. The SLURM logs show every `gamma_-22.4` cluster file really used γ = −22.4. The mislabel risk is confined to the pre-September 2025 files in the local Dropbox copy.
 
 3. **Two values of μ_g are in use.**
@@ -416,7 +416,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 2. Thread γ and λ₄ through `axial_spectra.main()` and its CLI, and through `run_axial_temperature_scan.py` and `run_axial_melting_scan.py`.
 3. Delete or move the dead files listed in §2.3. Fix the flag mismatches and the `capture_output` problem (§3.7).
 4. **Default γ = −22.6** (decided 2026-11-05, to match the earlier paper). Make it the default everywhere.
-   - All cluster data used −22.4 (§8.4), so they are off by δγ = −0.2. They are correctly labeled, but the baseline sets must be rerun at −22.6.
+   - The cluster data are at γ = −22.4 and the scan values −18, −20, −24 and −26 (§8.4). All are correctly labeled, and all stay in the scan. Only the −22.6 reference point itself is missing.
    - The pre-September 2025 Dropbox files that were renamed `gamma_-22.4` but produced with −22.6 should be **re-labelled to −22.6, not regenerated for that reason**. They are actually at the chosen γ. They still carry the solver and spectral issues of §3.3 and §3.4b.
 5. **Deliverable:** one command per observable (σ(T), T_c(μ), spectrum, melting line), with every parameter explicit and recorded in the output.
 
@@ -480,7 +480,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 
 | Need | Status | Change since the cluster data |
 |---|---|---|
-| 1. A calibrated model | **Fixed: μ_g = 440, γ = −22.6, λ₄ = 4.2**, matching the earlier paper. The T = 0 masses still need computing and reporting. | Decided 2026-11-05. The cluster baseline (γ = −22.4) must be rerun at −22.6. |
+| 1. A calibrated model | **Fixed: μ_g = 440, γ = −22.6, λ₄ = 4.2**, matching the earlier paper. The T = 0 masses still need computing and reporting. | Decided 2026-11-05. The cluster data become scan points around it; the γ = −22.6 reference point still has to be run. |
 | 2. A correct phase structure (stable branch, ΔF-based T_c) | Incorrect in the first-order region | **Less serious.** The T_c error is ≲ 0.5 MeV near the CEPs, and the CEP's μ does not move (§8.4). The fix still matters for branch-resolved spectra. |
 | 3. Converged spectra or QNMs | Unverified; the solver errors of §3.3 and §3.4b remain | None. Every cluster number must be recomputed. |
 | 4. A clear new result | **Preliminary answer exists** | The go/no-go gives no a₁–ρ degeneracy below melting in the CEP region (§8.5). The paper's story is largely settled. |
@@ -509,7 +509,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
    - the 7 clean CEP sets on refined μ grids;
    - a λ₁ bisection in (5.9, 6.0);
    - μ_max ≈ 500 for the two edge cases;
-   - **the baseline λ₁ scan at γ = −22.6, λ₄ = 4.2** (replacing the −22.4 sets; start the bisection from λ₁ ∈ (5.8, 6.0));
+   - **the reference λ₁ scan at γ = −22.6, λ₄ = 4.2**, added next to the −22.4 scan; start the bisection from λ₁ ∈ (5.8, 6.0);
    - a γ = −22.6, λ₄ = 4.0 point, to connect the baseline to the γ scan (λ₄ = 4.0);
    - one λ₄ = 4.4 slice;
    - warm-start each set from the cluster d₀ values.
@@ -750,8 +750,11 @@ The question: does chiral restoration (T_c) happen *before* melting, i.e. T_c < 
   - γ = −22.4 at λ₄ = 4.0 (the missing reference point for the γ scan);
   - the never-submitted λ₄ = 4.4 half of the grid;
   - the λ₁ = 7.0 tasks, with more memory (≥ 8 GB) and a longer time limit;
-  - the baseline λ₁ scan at γ = −22.6 (the chosen value; the cluster baseline is at −22.4).
-- **Discard:** both `task_summary.csv` files, `physics_summary_report.txt`, and all but the newest σ backup on QUENCH (1.1 GB, redundant). Do this after archiving, and only by hand.
+  - the reference λ₁ scan at γ = −22.6, λ₄ = 4.2 (the earlier paper's values), as a new scan point next to −22.4.
+- **Keep every physics dataset.** Every phase diagram and axial line is a valid scan point at the parameters in its name.
+  - Every row needs recomputing with the corrected solver before it goes into a figure (§8.3). The old files are still worth keeping, to compare against.
+  - Don't *rely on* the two `task_summary.csv` files or `physics_summary_report.txt`. Their physics fields are wrong or empty, so use §8.3 instead.
+  - The 1.1 GB of σ backups on QUENCH are redundant snapshots of the same log. Whether to archive them is only a disk-space question.
 
 A copy of the small cluster files (phase and axial CSVs, summaries, `vector_melting.csv`) and the derived tables from this section is on branch `data/obsidian-snapshot-20261105`. That branch is not merged into `main`.
 
