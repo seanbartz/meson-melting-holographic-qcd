@@ -31,13 +31,15 @@ File references use `file:line`.
    - γ = −22.4 is the default in the phase-diagram tools. γ = −22.6 is hardcoded in the chiral solver default (`chiral_solve_complete.py:15`), in `axial_spectra.py:97` and in `critical_zoom_improved.py:91,217`.
    - **`axial_spectra.py` cannot take γ or λ₄ at all** (`main()` at `axial_spectra.py:920`; `calculate_sigma_values` is called without v3/v4 at line 494). So the goal "assess the effect of γ and λ₄ on meson spectra" is currently impossible.
    - Legacy data files were renamed with `gamma_-22.4` even though they were produced with −22.6 (`rename_cp_data_files.py:43`, `rename_axial_melting_files.py:106`, `fix_phase_plot_names.sh:60,77`). Their provenance is now mislabeled.
-   - *Cluster check (§8.4):* none of the Obsidian data is affected. The SLURM logs show every `gamma_-22.4` cluster file really used γ = −22.4. The mislabel risk is confined to the pre-September 2025 files in the local Dropbox copy.
+   - **With γ = −22.6 chosen (see item 3), every γ = −22.4 dataset on the cluster is at the wrong γ.** This includes the baseline CEP set. The files are correctly labeled, but they have to be recomputed at −22.6. Since all of them need recomputing with the fixed solver anyway (§3.3), this adds almost no cost.
+   - *Cluster check (§8.4):* none of the Obsidian data is mislabeled. The SLURM logs show every `gamma_-22.4` cluster file really used γ = −22.4. The mislabel risk is confined to the pre-September 2025 files in the local Dropbox copy.
 
 3. **Two values of μ_g are in use.**
    - The code hardcodes μ_g = 440 MeV everywhere (`chiral_solve_complete.py:272`, `axial_spectra.py:59`, `vector_spectra.py:43`, output paths `mu_g_440/`).
    - The notebooks that compare with experiment use **μ_g = 388 MeV** (`Axial.ipynb`, `Vector_Spectra.ipynb`: `return 388 #440`). Only with 388 does the ρ come out at 775 MeV; with 440 the ρ sits at 880 MeV.
    - Even at 388 the a₁ ground state is not reproduced: the model gives about 1513 MeV against 1230 MeV measured.
    - The zero-temperature calibration, which every finite-T claim rests on, has not been settled.
+   - ***Decision (2026-11-05):* μ_g = 440 MeV and γ = −22.6 are fixed, to match the author's earlier published paper with this model.** With μ_g = 440 the ρ sits at about 880 MeV. The paper should say so and point to the earlier paper for the choice; the scale is set by consistency with that paper, not by the ρ mass. The 388 MeV notebooks become a side remark at most.
    - *Cluster check (§8.4):* all cluster data, including `vector_melting.csv`, used μ_g = 440. I recomputed the vector line and it matches 440 to 0.1 MeV.
 
 4. **The low-temperature spectral functions are round-off noise.** *(Added 2026-10-19, §3.4b.)*
@@ -51,7 +53,7 @@ File references use `file:line`.
   - a λ₁ scan at m_q = 12, γ = −22.4, λ₄ = 4.2;
   - a γ scan with γ ∈ {−18, −20, −24, −26}, m_q ∈ {9, 12, 15} and λ₁ ∈ {5.5, 6.0, 7.0}, at λ₄ = 4.0;
   - axial melting lines for 22 of these sets.
-- **Seven clean CEP brackets** (§8.3). The best one: at m_q = 12, λ₁ = 5.9, γ = −22.4, combining `batch_990_5.out` with the job-1002 rerun gives **μ_CEP ∈ (157.9, 160) MeV, T ≈ 108.0 MeV**. The μ = 0 critical coupling is λ₁,c ∈ (5.9, 6.0).
+- **Seven clean CEP brackets** (§8.3). The best one: at m_q = 12, λ₁ = 5.9, γ = −22.4, combining `batch_990_5.out` with the job-1002 rerun gives **μ_CEP ∈ (157.9, 160) MeV, T ≈ 108.0 MeV**. The μ = 0 critical coupling is λ₁,c ∈ (5.9, 6.0). These numbers are all at γ = −22.4; at the chosen γ = −22.6, expect μ_CEP to be lower by roughly tens of MeV (§8.5).
 - All of these were computed with the inaccurate solver settings of §3.3, so they are scouting data and must be recomputed before publication. The spinodal issue (1 above) turns out to shift T_c by only ≲ 0.5 MeV near the CEPs, and it does not move the CEP μ.
 - `vector_melting.csv` is μ_g = 440 with the potential-well criterion, the same as the axial lines. There are also scattered single-point results in `WorkbookJuly2025.ipynb`.
 - There are no spectra on the cluster, no λ₄ variation beyond 4.0/4.2, no axial/vector degeneracy analysis, and no branch-resolved spectra.
@@ -167,7 +169,7 @@ These come from the notebooks, `batch_990_5.out` and `vector_melting.csv`.
   - −22.6: `chiral_solve_complete.py:15`, `critical_zoom_improved.py:91,217`, `axial_spectra.py:97`, `vector_spectra.py:67`, `axial_melting_scan.py:477`, `criticalZoom.py:130`.
   - −22.4: `map_phase_diagram_improved.py:32,274,331,528`, `batch_phase_diagram_unified.py:451`, the SLURM scripts, `extract_physics_results.py:607`.
   - `run_axial_melting_scan.py` passes no γ, so it silently uses −22.6 while the phase diagrams use −22.4.
-  - Fix: decide the value. Then create one `model_params.py` (γ, λ₄, μ_g, u_i, u_f, tolerances) that everything imports.
+  - Fix: **use γ = −22.6** (decided 2026-11-05, to match the earlier paper). Change the −22.4 defaults in `map_phase_diagram_improved.py`, `batch_phase_diagram_unified.py`, the SLURM scripts and `extract_physics_results.py`. Then create one `model_params.py` (γ, λ₄, μ_g, u_i, u_f, tolerances) that everything imports.
 - **μ_g is hardcoded in four places.** The `-mug` flag of `axial_melting_scan.py` changes only the vector part of the potential, not the chiral background (`chiral_solve_complete.py:272`). Make μ_g a real parameter and put it in every cache key and filename.
 - **Different cutoffs in different codes:**
   - The phase diagrams solve the chiral field with u_i = 1e-4 (`critical_zoom_improved.py:401`, `map_phase_diagram_improved.py:30`).
@@ -391,7 +393,7 @@ These are ordered by expected payoff. The first four probably make the overall w
 | 3 | First-order transition visible in axial spectra | Not possible yet | §3.1: free energy and branch selection |
 | 4 | (m_q, λ₁) of the critical point from spectra | **Scouting map exists** (§8.3): 7 clean CEP brackets over m_q ∈ {9, 12, 15}, λ₁ = 5.5–7.0, γ = −18 to −26; λ₁,c(μ = 0) ∈ (5.9, 6.0) at m_q = 12. Computed with the inaccurate solver. Not linked to spectra. | §3.3 recompute of the 7 sets; §3.1 for spectra only (T_c shift ≲ 0.5 MeV) |
 | 5 | Effect of γ, λ₄ | **Phase diagram: γ scan done** (−18 to −26, at λ₄ = 4.0). No λ₄ variation; the γ = −22.4, λ₄ = 4.0 reference is missing. Spectra: impossible. | §3.2; missing λ₄ = 4.4 runs and reference point |
-| 6 | Match T = 0 meson spectra | ρ OK only at μ_g = 388; a₁ 280 MeV too high | Calibration decision (§6, Phase 3) |
+| 6 | Match T = 0 meson spectra | **μ_g = 440 fixed** (consistency with the earlier paper). The ρ comes out at about 880 MeV and the a₁ is also high; report the T = 0 masses and (ω/μ_g)² ratios rather than fit to experiment. | Compute the T = 0 table at μ_g = 440, γ = −22.6 (Phase 3) |
 | 7 | Both a CEP and a reasonable melting temperature | Axial lines exist for 22 sets (consistent γ, μ_g = 440, well criterion), and the vector line uses the same criterion. At every CEP, T_melt^V < T_CEP. | §3.3 recompute; Phase 3 μ_g choice |
 | 8 | Comparison with the reviewed paper | Not started | Needs 3, 7, and the Hawking–Page discussion in §3.9 |
 | 9 | Chiral restoration via axial/vector degeneracy below melting | **Go/no-go answered on the existing data (§8.5): no in the CEP region.** T_χ < T_V only in 3 weak-γ sets at μ ≲ 80, by ≤ 6 MeV. T_A ≈ T_χ. | One QNM/width check of the melting criterion; then write it as a negative result, or map the window |
@@ -413,7 +415,9 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 1. Create `model_params.py` with one dataclass holding T, μ, m_q, λ₁, γ, λ₄, μ_g, u_i, u_f and the tolerances. Make every module import it, and delete all hardcoded `lam_function`, `mu_g()` and module-level v3/v4 defaults.
 2. Thread γ and λ₄ through `axial_spectra.main()` and its CLI, and through `run_axial_temperature_scan.py` and `run_axial_melting_scan.py`.
 3. Delete or move the dead files listed in §2.3. Fix the flag mismatches and the `capture_output` problem (§3.7).
-4. Decide the default γ (−22.4 or −22.6). Re-label or regenerate the legacy files whose names now say −22.4. All cluster data used −22.4 (§8.4), which argues for −22.4. Only the pre-September 2025 Dropbox files need re-labelling.
+4. **Default γ = −22.6** (decided 2026-11-05, to match the earlier paper). Make it the default everywhere.
+   - All cluster data used −22.4 (§8.4), so they are off by δγ = −0.2. They are correctly labeled, but the baseline sets must be rerun at −22.6.
+   - The pre-September 2025 Dropbox files that were renamed `gamma_-22.4` but produced with −22.6 should be **re-labelled to −22.6, not regenerated for that reason**. They are actually at the chosen γ. They still carry the solver and spectral issues of §3.3 and §3.4b.
 5. **Deliverable:** one command per observable (σ(T), T_c(μ), spectrum, melting line), with every parameter explicit and recorded in the output.
 
 ### Phase 1: numerical validation (Goal 1; the referee-proof foundation)
@@ -441,19 +445,19 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
    - an axial spectral-function figure across the first-order line, compared with the smooth evolution across the crossover.
 
 ### Phase 3: calibration and go/no-go (Goals 6, 7, 9)
-1. Decide μ_g:
-   - μ_g = 388 fits the ρ;
-   - check whether the axial ground state can be fixed by m_q and λ₁ (and by γ, λ₄ through σ), since the a₁–ρ splitting is driven by g₅²χ²;
-   - if the a₁ cannot be fitted, say so and fit to the a₁–ρ splitting or to (ω/μ_g)² ratios instead.
+1. **μ_g = 440 and γ = −22.6 are fixed** (decided 2026-11-05, for consistency with the earlier paper). The calibration step becomes:
+   - compute the T = 0 vector and axial masses at μ_g = 440, γ = −22.6, using the eigenvalue or QNM method, not the low-T spectra (§3.4b);
+   - check how far m_q and λ₁ (and λ₄, through σ) move the a₁–ρ splitting, since it is driven by g₅²χ²;
+   - report the masses and the (ω/μ_g)² ratios, and state the comparison with experiment openly, as the earlier paper presumably did.
 2. Use the m_q and λ₁ fit to the a₁ (and f_π, if computed) as constraints on the CEP search.
-3. **Go/no-go:** for the calibrated set(s), compare the chiral T_χ(μ) with the vector and axial melting lines, using the single criterion from §3.5. *Preliminary answer from the cluster data (§8.5): no-go in the CEP region at μ_g = 440, and μ_g = 388 makes it worse.* What remains is to confirm it with a QNM/width criterion at (12, 5.9, −22.4) and at (9, 5.5, −20).
+3. **Go/no-go:** for the calibrated set(s), compare the chiral T_χ(μ) with the vector and axial melting lines, using the single criterion from §3.5. *Preliminary answer from the cluster data (§8.5): no-go in the CEP region at μ_g = 440.* What remains is to confirm it with a QNM/width criterion at the γ = −22.6 baseline CEP set and at (9, 5.5, −20).
    - If T_χ > T_melt^V everywhere (as the early data suggests), then "degeneracy below melting" is a *negative result*. That is still publishable and fits the comparison with the reviewed paper.
    - Otherwise, map where T_χ < T_melt.
 4. **Deliverable:** a T = 0 mass table and Regge plot (the existing `plot_meson_mass_squared.py` plus model points), and the go/no-go answer.
 
 ### Phase 4: production scans (Goals 4, 5, 7, 10)
 1. A CEP map in (m_q, λ₁) at fixed (γ, λ₄): μ_CEP and T_CEP versus λ₁, for 2–3 values of m_q. Use the fixed pipeline with stable-branch T_c.
-   - **Do not rerun blind. Use the §8.3 scouting map:** recompute the seven clean CEP sets on μ grids refined around each bracket, and bisect λ₁ ∈ (5.9, 6.0) at m_q = 12.
+   - **Do not rerun blind. Use the §8.3 scouting map:** recompute the seven clean CEP sets on μ grids refined around each bracket, and bisect λ₁ at m_q = 12 with γ = −22.6, starting from (5.8, 6.0); the −22.4 bracket is (5.9, 6.0).
    - Warm-start each branch from the d₀ values in the cluster `sigma_calculations.csv`, after deduplication and with the corrupt lines dropped.
 2. γ/λ₄ sensitivity: a small grid of about 3 × 3 around the default. Record how the CEP, the melting lines, and the T = 0 a₁ mass move.
    - The γ direction has already been scouted (§8.3).
@@ -476,7 +480,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 
 | Need | Status | Change since the cluster data |
 |---|---|---|
-| 1. A calibrated model | Undecided: μ_g = 440 or 388; the a₁ is about 280 MeV too high | None. No data address this. |
+| 1. A calibrated model | **Fixed: μ_g = 440, γ = −22.6**, matching the earlier paper. The T = 0 masses still need computing and reporting. | Decided 2026-11-05. The cluster baseline (γ = −22.4) must be rerun at −22.6. |
 | 2. A correct phase structure (stable branch, ΔF-based T_c) | Incorrect in the first-order region | **Less serious.** The T_c error is ≲ 0.5 MeV near the CEPs, and the CEP's μ does not move (§8.4). The fix still matters for branch-resolved spectra. |
 | 3. Converged spectra or QNMs | Unverified; the solver errors of §3.3 and §3.4b remain | None. Every cluster number must be recomputed. |
 | 4. A clear new result | **Preliminary answer exists** | The go/no-go gives no a₁–ρ degeneracy below melting in the CEP region (§8.5). The paper's story is largely settled. |
@@ -505,22 +509,23 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
    - the 7 clean CEP sets on refined μ grids;
    - a λ₁ bisection in (5.9, 6.0);
    - μ_max ≈ 500 for the two edge cases;
-   - the γ = −22.4, λ₄ = 4.0 reference point;
+   - **the baseline λ₁ scan at γ = −22.6, λ₄ = 4.2** (replacing the −22.4 sets; start the bisection from λ₁ ∈ (5.8, 6.0));
+   - a γ = −22.6, λ₄ = 4.0 point, to connect the baseline to the γ scan (λ₄ = 4.0);
    - one λ₄ = 4.4 slice;
    - warm-start each set from the cluster d₀ values.
-4. **QNM solver** (Phase 1, item 4). Use it to confirm the go/no-go at (12, 5.9, −22.4) and (9, 5.5, −20), and to compute masses and widths. If the ρ keeps Γ/M < 1 up to T_CEP, the story changes. This is the one remaining check that could overturn it.
+4. **QNM solver** (Phase 1, item 4). Use it to confirm the go/no-go at the γ = −22.6 baseline CEP set and at (9, 5.5, −20), and to compute masses and widths. If the ρ keeps Γ/M < 1 up to T_CEP, the story changes. This is the one remaining check that could overturn it.
 5. **Phase 2, reduced.** ΔF-based T_c and branch-resolved axial spectra, for one strong-|γ| set and the baseline CEP set.
-6. **Phase 3, item 1 (calibration)** can run alongside steps 3–5. The no-go conclusion holds at both μ_g values: μ_g = 388 lowers the vector line by 12%.
+6. **Phase 3, item 1 (T = 0 masses at μ_g = 440, γ = −22.6)** can run alongside steps 3–5. The calibration decision itself is made.
 7. **Writing.**
 
 **Revised minimal first paper:**
-- the model, with the μ_g choice and its T = 0 masses (the a₁ discrepancy stated openly);
+- the model, with μ_g = 440 and γ = −22.6 as in the earlier paper, and its T = 0 masses (the ρ and a₁ offsets stated openly);
 - the corrected CEP map against λ₁ and γ at one or two values of m_q, with ΔF-based T_c;
 - vector and axial melting lines with a single criterion, cross-checked with QNMs;
 - the main result: restoration and the CEP sit in the melted phase, and axial melting is locked to T_χ;
 - first-order spectral signatures in one strong-|γ| set;
 - the comparison with the reviewed paper, including the Hawking–Page discussion (§3.9);
-- deferred to a follow-up: the full (m_q, λ₁, γ, λ₄) map and μ_g = 388 production.
+- deferred to a follow-up: the full (m_q, λ₁, γ, λ₄) map.
 
 ---
 
@@ -720,7 +725,11 @@ The question: does chiral restoration (T_c) happen *before* melting, i.e. T_c < 
   - These margins are comparable to the §3.3 solver error, and all three are broad crossovers where T_c is poorly defined.
   - (9, 5.5, −20) is the only candidate for Goal 10, "degeneracy for sets with a CEP". Even there, the degeneracy window (μ ≤ 60) is far from the CEP (μ ≈ 390).
 - **Axial channel: T_A ≈ T_c (±1.5 MeV) for γ ≤ −22.4.** "Restoration before axial melting" therefore cannot be resolved with the current criterion and solver accuracy.
-- **With μ_g = 388**, the value that fits the ρ, the vector line drops by 12% (90.6 MeV at μ = 0). The no-go gets stronger, although the chiral sector has not been recomputed at 388.
+- **μ_g is fixed at 440**, so the comparison above is the relevant one. (For reference only: at μ_g = 388 the vector line would drop by 12%.)
+- **The effect of γ = −22.6 versus the −22.4 data.** From the γ scan, T_c(μ = 0) rises by about 1.1 MeV per unit of −γ (for example, at m_q = 12, λ₁ = 6.0: 111.8, 114.5, 116.9, 118.6 and 120.7 MeV at γ = −18, −20, −22.4, −24 and −26). So δγ = −0.2 raises T_c by about 0.2 MeV.
+  - The CEP moves more. More negative γ favours first order, so μ_CEP at fixed λ₁ should drop by roughly tens of MeV, and λ₁,c(μ = 0) should fall slightly below the (5.9, 6.0) bracket.
+  - This estimate is crude: the scan mixes λ₄ = 4.0 and 4.2.
+  - Neither shift changes the no-go: T_V is independent of γ, and T_c moves up, not down.
 
 **Answer:** with the existing data, **no-go for degeneracy below melting in the CEP region**. There is at most a marginal window, at weak γ and small μ, that is not yet resolved. The paper's story then becomes the negative result in §6 Phase 3: "chiral restoration and the CEP occur in the melted phase; axial melting is locked to the chiral transition." That still answers Goals 9–10 and fits the comparison with the reviewed paper.
 
@@ -741,7 +750,7 @@ The question: does chiral restoration (T_c) happen *before* melting, i.e. T_c < 
   - γ = −22.4 at λ₄ = 4.0 (the missing reference point for the γ scan);
   - the never-submitted λ₄ = 4.4 half of the grid;
   - the λ₁ = 7.0 tasks, with more memory (≥ 8 GB) and a longer time limit;
-  - everything at μ_g = 388, if Phase 3 picks it.
+  - the baseline λ₁ scan at γ = −22.6 (the chosen value; the cluster baseline is at −22.4).
 - **Discard:** both `task_summary.csv` files, `physics_summary_report.txt`, and all but the newest σ backup on QUENCH (1.1 GB, redundant). Do this after archiving, and only by hand.
 
 A copy of the small cluster files (phase and axial CSVs, summaries, `vector_melting.csv`) and the derived tables from this section is on branch `data/obsidian-snapshot-20261105`. That branch is not merged into `main`.
