@@ -39,7 +39,7 @@ File references use `file:line`.
    - The notebooks that compare with experiment use **μ_g = 388 MeV** (`Axial.ipynb`, `Vector_Spectra.ipynb`: `return 388 #440`). Only with 388 does the ρ come out at 775 MeV; with 440 the ρ sits at 880 MeV.
    - Even at 388 the a₁ ground state is not reproduced: the model gives about 1513 MeV against 1230 MeV measured.
    - The zero-temperature calibration, which every finite-T claim rests on, has not been settled.
-   - ***Decision (2026-11-05):* μ_g = 440 MeV and γ = −22.6 are fixed, to match the author's earlier published paper with this model.** With μ_g = 440 the ρ sits at about 880 MeV. The paper should say so and point to the earlier paper for the choice; the scale is set by consistency with that paper, not by the ρ mass. The 388 MeV notebooks become a side remark at most.
+   - ***Decision (2026-11-05):* μ_g = 440 MeV, γ = −22.6 and λ₄ = 4.2 are fixed, to match the author's earlier published paper with this model.** With μ_g = 440 the ρ sits at about 880 MeV. The paper should say so and point to the earlier paper for the choice; the scale is set by consistency with that paper, not by the ρ mass. The 388 MeV notebooks become a side remark at most.
    - *Cluster check (§8.4):* all cluster data, including `vector_melting.csv`, used μ_g = 440. I recomputed the vector line and it matches 440 to 0.1 MeV.
 
 4. **The low-temperature spectral functions are round-off noise.** *(Added 2026-10-19, §3.4b.)*
@@ -445,7 +445,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
    - an axial spectral-function figure across the first-order line, compared with the smooth evolution across the crossover.
 
 ### Phase 3: calibration and go/no-go (Goals 6, 7, 9)
-1. **μ_g = 440 and γ = −22.6 are fixed** (decided 2026-11-05, for consistency with the earlier paper). The calibration step becomes:
+1. **μ_g = 440, γ = −22.6 and λ₄ = 4.2 are fixed** (decided 2026-11-05, for consistency with the earlier paper). The calibration step becomes:
    - compute the T = 0 vector and axial masses at μ_g = 440, γ = −22.6, using the eigenvalue or QNM method, not the low-T spectra (§3.4b);
    - check how far m_q and λ₁ (and λ₄, through σ) move the a₁–ρ splitting, since it is driven by g₅²χ²;
    - report the masses and the (ω/μ_g)² ratios, and state the comparison with experiment openly, as the earlier paper presumably did.
@@ -480,7 +480,7 @@ Each phase ends with a concrete deliverable. Phases 0–2 are corrections and va
 
 | Need | Status | Change since the cluster data |
 |---|---|---|
-| 1. A calibrated model | **Fixed: μ_g = 440, γ = −22.6**, matching the earlier paper. The T = 0 masses still need computing and reporting. | Decided 2026-11-05. The cluster baseline (γ = −22.4) must be rerun at −22.6. |
+| 1. A calibrated model | **Fixed: μ_g = 440, γ = −22.6, λ₄ = 4.2**, matching the earlier paper. The T = 0 masses still need computing and reporting. | Decided 2026-11-05. The cluster baseline (γ = −22.4) must be rerun at −22.6. |
 | 2. A correct phase structure (stable branch, ΔF-based T_c) | Incorrect in the first-order region | **Less serious.** The T_c error is ≲ 0.5 MeV near the CEPs, and the CEP's μ does not move (§8.4). The fix still matters for branch-resolved spectra. |
 | 3. Converged spectra or QNMs | Unverified; the solver errors of §3.3 and §3.4b remain | None. Every cluster number must be recomputed. |
 | 4. A clear new result | **Preliminary answer exists** | The go/no-go gives no a₁–ρ degeneracy below melting in the CEP region (§8.5). The paper's story is largely settled. |
