@@ -1,0 +1,2 @@
+slurmstepd: error: *** JOB 1081 ON node19 CANCELLED AT 2025-09-17T17:11:47 DUE TO TIME LIMIT ***
+slurmstepd: error: Detected 1 oom_kill event in StepId=1081.batch. Some of the step tasks have been OOM Killed.

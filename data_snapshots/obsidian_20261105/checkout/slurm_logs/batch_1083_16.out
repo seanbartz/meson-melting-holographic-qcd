@@ -1,0 +1,324 @@
+=== INTELLIGENT SLURM Job Array Task ===
+Job ID: 1083
+Task ID: 16
+Node: node19
+CPUs allocated: 1 / 1 on node
+Memory allocated: 3072MB per CPU
+Total task memory: 3072MB
+Threading: 1 threads
+Submit directory: /net/home/sbartz1/QGP/meson-melting-holographic-qcd
+Command line args: -mqvalues 9.0 12.0 15.0 -lambda1values 5.5 6.0 7.0 -gammavalues -18 -26 -lambda4values 4. 4.4
+========================================
+Parsed parameter arrays:
+  MQ_VALUES: 9.0 12.0 15.0
+  LAMBDA1_VALUES: 5.5 6.0 7.0
+  GAMMA_VALUES: -18 -26
+  LAMBDA4_VALUES: 4. 4.4
+Task 16 parameters:
+  Array sizes: MQ=3, LAMBDA1=3, GAMMA=2, LAMBDA4=2
+  Indices: MQ_IDX=0, LAMBDA1_IDX=2, GAMMA_IDX=1, LAMBDA4_IDX=0
+  Values: mq=9.0, lambda1=7.0, gamma=-26, lambda4=4.
+Physical parameters:
+  mumin = 0.0
+  mumax = 400.0
+  mupoints = 21
+  tmin = 80.0
+  tmax = 210.0
+  maxiter = 10
+Shared output configured:
+  Data: /net/project/QUENCH/phase_data
+  Plots: /net/project/QUENCH/phase_plots
+  Sigma: /net/project/QUENCH/sigma_data
+Starting map_phase_diagram_improved.py at Fri Sep 19 15:01:41 EDT 2025
+System Information:
+CPU cores detected: 20
+Using 20 temperature points per iteration for optimal parallelization
+
+Detected 20 CPU cores - using 20 temperature points per iteration
+Using gamma = -26.000, lambda4 = 4.000
+Converted to internal parameters: v3 = -3.064129, v4 = 4.000
+Mapping phase diagram for ml=9.0 MeV, lambda1=7.0
+Chemical potential range: 0.0 to 400.0 MeV (21 points)
+Using improved sigma calculation with optimized parallelization
+======================================================================
+
+Progress: 1/21 - Processing mu = 0.00 MeV
+  Initial temperature range: 80.0 - 210.0 MeV
+Starting critical zoom for mq=9.0 MeV, mu=0.0 MeV, lambda1=7.0
+Using v3=-3.064, v4=4.000
+Initial temperature range: 80.00 - 210.00 MeV
+
+--- Iteration 1 ---
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=210.0, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=203.1578947368421, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=196.31578947368422, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=162.10526315789474, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=189.4736842105263, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=168.94736842105263, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=155.26315789473682, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=182.63157894736844, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=175.78947368421052, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=148.42105263157896, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=121.05263157894737, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=100.52631578947368, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=114.21052631578948, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=127.89473684210526, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=134.73684210526315, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=141.57894736842104, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=107.36842105263158, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=93.6842105263158, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=86.84210526315789, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=80.0, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Calculating sigma values for 20 temperatures from 80.00 to 210.00 MeV...
+Calculation completed in 112.93 seconds
+First order transition detected
+Critical temperature is 134.737 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 114.211 - 141.579 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=119.97229916897507, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=121.41274238227147, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=122.85318559556787, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=118.53185595567868, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=124.29362880886427, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=114.21052631578948, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=125.73407202216066, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=128.61495844875347, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=127.17451523545706, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=130.05540166204986, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=131.49584487534625, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=132.93628808864264, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=134.37673130193906, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=135.81717451523545, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=137.25761772853184, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=138.69806094182826, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=140.13850415512465, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 3 solutions found
+  Parameters: mq=9.0, T=141.57894736842104, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=115.65096952908588, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Warning: Could not check existing calculations: Error tokenizing data. C error: Expected 19 fields in line 2050, saw 35
+
+Logged sigma calculation: 1 solutions found
+  Parameters: mq=9.0, T=117.09141274238227, mu=0.0, lambda1=7.0, v3=-3.064129, v4=4.0
+Calculating sigma values for 20 temperatures from 114.21 to 141.58 MeV...
+Calculation completed in 120.93 seconds
+First order transition detected
+Critical temperature is 135.817 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 2 iterations
+Final critical temperature: 135.817 MeV
+Final transition order: 1
+  Result: Tc = 135.817 MeV, Order = 1 (First order)
+  Max sigma = 329.589336
+  Calculation time: 234.27 seconds
+  Iterations: 2
+  Total temperature points evaluated: 40
+
+Progress: 2/21 - Processing mu = 20.00 MeV
+  Adaptive temperature range: 80.0 - 137.8 MeV
+  (Based on previous Tc = 135.8 MeV)
+Starting critical zoom for mq=9.0 MeV, mu=20.0 MeV, lambda1=7.0
+Using v3=-3.064, v4=4.000
+Initial temperature range: 80.00 - 137.82 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 137.82 MeV...

@@ -1,0 +1,10 @@
+usage: map_phase_diagram_improved.py [-h] -lambda1 LAMBDA1 -mq MQ
+                                     [-mumin MUMIN] [-mumax MUMAX]
+                                     [-mupoints MUPOINTS] [-tmin TMIN]
+                                     [-tmax TMAX] [-ui UI] [-uf UF]
+                                     [-d0lower D0LOWER] [-d0upper D0UPPER]
+                                     [-mqtolerance MQTOLERANCE]
+                                     [-maxiterations MAXITERATIONS]
+                                     [-gamma GAMMA] [-lambda4 LAMBDA4] [-o O]
+                                     [--no-plot] [--no-display] [--compare]
+map_phase_diagram_improved.py: error: argument -lambda4: expected one argument

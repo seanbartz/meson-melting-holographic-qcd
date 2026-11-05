@@ -1,0 +1,2 @@
+task_id,calculation_date,timestamp,mq,lambda1,gamma,lambda4,T_min,T_max,mu_min,mu_max,num_mu_values,axial_melting_T_mu0,axial_melting_mu_mu0,chiral_critical_T_mu0,chiral_critical_mu_mu0,chiral_transition_order,has_critical_point,critical_point_T,critical_point_mu,axial_vector_merge,merge_T,merge_mu,axial_chiral_cross,cross_T,cross_mu,total_calculations,convergence_issues,notes
+batch_1044_1,2025-09-11,2025-09-11T11:27:23.474064,12.0,6.5,-22.4,4.2,,,,,,,,,,2,False,,,False,,,False,,,,0,

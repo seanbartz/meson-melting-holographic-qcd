@@ -1,0 +1,20 @@
+Physics Calculation Summary Report
+==================================================
+
+Generated: 2025-09-11 11:27:23
+Total tasks: 1
+
+Input Parameter Ranges:
+-------------------------
+mq: 12.000 - 12.000
+lambda1: 6.500 - 6.500
+gamma: -22.400 - -22.400
+lambda4: 4.200 - 4.200
+
+Physics Results Summary:
+-------------------------
+Tasks with critical points: 0/1 (0.0%)
+Tasks with axial-vector merging: 0/1 (0.0%)
+Tasks with axial-chiral crossings: 0/1 (0.0%)
+
+Detailed data available in: summary_data/task_summary.csv

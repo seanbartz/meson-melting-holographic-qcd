@@ -1,0 +1,2 @@
+slurmstepd: error: *** JOB 1082 ON node20 CANCELLED AT 2025-09-17T17:11:47 DUE TO TIME LIMIT ***
+slurmstepd: error: Detected 1 oom_kill event in StepId=1082.batch. Some of the step tasks have been OOM Killed.

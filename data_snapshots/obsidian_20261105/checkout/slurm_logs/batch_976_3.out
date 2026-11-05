@@ -1,0 +1,32 @@
+=== SLURM Job Array Task ===
+Job ID: 976
+Task ID: 3
+Node: node29
+Submit directory: /net/home/sbartz1/QGP/meson-melting-holographic-qcd
+Command line args: -mq 12.0 -lambda1values 5.6 5.7 5.8 5.9 -gamma -22.4 -lambda4 4.2
+==========================
+Parsed parameter arrays:
+  MQ_VALUES: 12.0
+  LAMBDA1_VALUES: 5.6
+  GAMMA_VALUES: -22.4
+  LAMBDA4_VALUES: 4.2
+Task 3 parameters:
+  mq = 12.0
+  lambda1 = 5.6
+  gamma = -22.4
+  lambda4 = 
+Physical parameters:
+  mumin = 0.0
+  mumax = 200.0
+  mupoints = 20
+  tmin = 80.0
+  tmax = 210.0
+  maxiter = 10
+Shared output configured:
+  Data: /net/project/QUENCH/phase_data
+  Plots: /net/project/QUENCH/phase_plots
+  Sigma: /net/project/QUENCH/sigma_data
+Starting map_phase_diagram_improved.py at Thu Sep  4 11:59:50 EDT 2025
+Copying results to shared project directory...
+ERROR: Task 3 failed with exit code 2 at Thu Sep  4 11:59:51 EDT 2025
+Task finished at Thu Sep  4 11:59:51 EDT 2025

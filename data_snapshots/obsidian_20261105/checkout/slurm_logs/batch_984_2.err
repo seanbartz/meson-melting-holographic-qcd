@@ -1,0 +1,12 @@
+/var/spool/slurmd/job00986/slurm_script: line 123: (TASK_ID_0 / (N_MQ * N_LAMBDA1)) % N_GAMMA: division by 0 (error token is "N_GAMMA")
+/var/spool/slurmd/job00986/slurm_script: line 124: TASK_ID_0 / (N_MQ * N_LAMBDA1 * N_GAMMA): division by 0 (error token is "(N_MQ * N_LAMBDA1 * N_GAMMA)")
+usage: map_phase_diagram_improved.py [-h] -lambda1 LAMBDA1 -mq MQ
+                                     [-mumin MUMIN] [-mumax MUMAX]
+                                     [-mupoints MUPOINTS] [-tmin TMIN]
+                                     [-tmax TMAX] [-ui UI] [-uf UF]
+                                     [-d0lower D0LOWER] [-d0upper D0UPPER]
+                                     [-mqtolerance MQTOLERANCE]
+                                     [-maxiterations MAXITERATIONS]
+                                     [-gamma GAMMA] [-lambda4 LAMBDA4] [-o O]
+                                     [--no-plot] [--no-display] [--compare]
+map_phase_diagram_improved.py: error: argument -gamma: expected one argument

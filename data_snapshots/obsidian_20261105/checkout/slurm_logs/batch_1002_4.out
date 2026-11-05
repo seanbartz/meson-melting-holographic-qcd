@@ -1,0 +1,1159 @@
+=== SLURM Job Array Task ===
+Job ID: 1002
+Task ID: 4
+Node: node12
+Submit directory: /net/home/sbartz1/QGP/meson-melting-holographic-qcd
+Command line args: -mq 12.0 -lambda1values 5.5 5.6 5.7 5.8 5.9 6.0 -gamma -22.4 -lambda4 4.2
+==========================
+Parsed parameter arrays:
+  MQ_VALUES: 12.0
+  LAMBDA1_VALUES: 5.5 5.6 5.7 5.8 5.9 6.0
+  GAMMA_VALUES: -22.4
+  LAMBDA4_VALUES: 4.2
+Task 4 parameters:
+  Array sizes: MQ=1, LAMBDA1=6, GAMMA=1, LAMBDA4=1
+  Indices: MQ_IDX=0, LAMBDA1_IDX=3, GAMMA_IDX=0, LAMBDA4_IDX=0
+  Values: mq=12.0, lambda1=5.8, gamma=-22.4, lambda4=4.2
+Physical parameters:
+  mumin = 0.0
+  mumax = 400.0
+  mupoints = 21
+  tmin = 80.0
+  tmax = 210.0
+  maxiter = 10
+Shared output configured:
+  Data: /net/project/QUENCH/phase_data
+  Plots: /net/project/QUENCH/phase_plots
+  Sigma: /net/project/QUENCH/sigma_data
+Starting map_phase_diagram_improved.py at Thu Sep  4 15:51:36 EDT 2025
+System Information:
+CPU cores detected: 20
+Using 20 temperature points per iteration for optimal parallelization
+
+Detected 20 CPU cores - using 20 temperature points per iteration
+Using gamma = -22.400, lambda4 = 4.200
+Converted to internal parameters: v3 = -2.639865, v4 = 4.200
+Mapping phase diagram for ml=12.0 MeV, lambda1=5.8
+Chemical potential range: 0.0 to 400.0 MeV (21 points)
+Using improved sigma calculation with optimized parallelization
+======================================================================
+
+Progress: 1/21 - Processing mu = 0.00 MeV
+  Initial temperature range: 80.0 - 210.0 MeV
+Starting critical zoom for mq=12.0 MeV, mu=0.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 210.00 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 210.00 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 93.684 and 121.053 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 93.68 to 121.05 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.529 and 115.291 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 109.53 to 115.29 MeV...
+Calculation completed in 4.70 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.955 and 113.168 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 111.96 to 113.17 MeV...
+Calculation completed in 4.70 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.402 and 112.657 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 112.40 to 112.66 MeV...
+Calculation completed in 4.69 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.469 and 112.523 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 112.47 to 112.52 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.489 and 112.500 MeV
+Transition order: 2
+
+--- Iteration 7 ---
+Calculating sigma values for 20 temperatures from 112.49 to 112.50 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.491 and 112.493 MeV
+Transition order: 2
+
+Zoom completed after 7 iterations
+Final critical temperature: 112.492 MeV
+Final transition order: 2
+  Result: Tc = 112.492 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 216.635001
+  Calculation time: 33.06 seconds
+  Iterations: 7
+  Total temperature points evaluated: 140
+
+Progress: 2/21 - Processing mu = 20.00 MeV
+  Adaptive temperature range: 80.0 - 114.5 MeV
+  (Based on previous Tc = 112.5 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=20.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 114.49 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 114.49 MeV...
+Calculation completed in 5.40 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.046 and 114.492 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 109.05 to 114.49 MeV...
+Calculation completed in 4.59 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.912 and 113.059 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 111.91 to 113.06 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.335 and 112.576 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 112.33 to 112.58 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.411 and 112.462 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 112.41 to 112.46 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.456 and 112.462 MeV
+Transition order: 2
+
+Zoom completed after 5 iterations
+Final critical temperature: 112.462 MeV
+Final transition order: 2
+  Result: Tc = 112.462 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 216.875767
+  Calculation time: 24.21 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 3/21 - Processing mu = 40.00 MeV
+  Adaptive temperature range: 80.0 - 114.5 MeV
+  (Based on previous Tc = 112.5 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=40.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 114.46 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 114.46 MeV...
+Calculation completed in 5.37 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.020 and 114.462 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 109.02 to 114.46 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.598 and 112.743 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 111.60 to 112.74 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.020 and 112.261 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 112.02 to 112.26 MeV...
+Calculation completed in 4.57 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.033 and 112.083 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 112.03 to 112.08 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.049 and 112.059 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 112.05 to 112.06 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 112.053 and 112.055 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 112.054 MeV
+Final transition order: 2
+  Result: Tc = 112.054 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 217.096306
+  Calculation time: 28.87 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 4/21 - Processing mu = 60.00 MeV
+  Adaptive temperature range: 80.0 - 114.1 MeV
+  (Based on previous Tc = 112.1 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=60.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 114.05 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 114.05 MeV...
+Calculation completed in 4.98 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 106.884 and 114.054 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 106.88 to 114.05 MeV...
+Calculation completed in 4.74 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 110.658 and 112.167 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 110.66 to 112.17 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.373 and 111.690 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 111.37 to 111.69 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.490 and 111.557 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 111.49 to 111.56 MeV...
+Calculation completed in 4.53 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.504 and 111.518 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 111.50 to 111.52 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 111.507 and 111.510 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 111.508 MeV
+Final transition order: 2
+  Result: Tc = 111.508 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 217.449716
+  Calculation time: 28.50 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 5/21 - Processing mu = 80.00 MeV
+  Adaptive temperature range: 80.0 - 113.5 MeV
+  (Based on previous Tc = 111.5 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=80.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 113.51 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 113.51 MeV...
+Calculation completed in 4.97 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 106.454 and 113.508 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 106.45 to 113.51 MeV...
+Calculation completed in 4.50 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 110.167 and 111.652 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 110.17 to 111.65 MeV...
+Calculation completed in 4.69 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 110.636 and 110.948 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 110.64 to 110.95 MeV...
+Calculation completed in 4.58 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 110.751 and 110.817 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 110.75 to 110.82 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 110.810 and 110.817 MeV
+Transition order: 2
+
+Zoom completed after 5 iterations
+Final critical temperature: 110.817 MeV
+Final transition order: 2
+  Result: Tc = 110.817 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 217.963911
+  Calculation time: 23.64 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 6/21 - Processing mu = 100.00 MeV
+  Adaptive temperature range: 80.0 - 112.8 MeV
+  (Based on previous Tc = 110.8 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=100.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 112.82 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 112.82 MeV...
+Calculation completed in 5.11 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.908 and 112.817 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 105.91 to 112.82 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.181 and 110.635 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 109.18 to 110.64 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.716 and 110.023 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 109.72 to 110.02 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.781 and 109.845 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 109.78 to 109.85 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 109.839 and 109.845 MeV
+Transition order: 2
+
+Zoom completed after 5 iterations
+Final critical temperature: 109.845 MeV
+Final transition order: 2
+  Result: Tc = 109.845 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 218.605537
+  Calculation time: 23.99 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 7/21 - Processing mu = 120.00 MeV
+  Adaptive temperature range: 80.0 - 111.8 MeV
+  (Based on previous Tc = 109.8 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=120.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 111.85 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 111.85 MeV...
+Calculation completed in 5.01 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.141 and 111.845 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 105.14 to 111.85 MeV...
+Calculation completed in 4.62 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 107.964 and 109.375 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 107.96 to 109.38 MeV...
+Calculation completed in 4.58 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 108.558 and 108.855 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 108.56 to 108.86 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 108.652 and 108.715 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 108.65 to 108.71 MeV...
+Calculation completed in 4.71 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 108.668 and 108.682 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 108.67 to 108.68 MeV...
+Calculation completed in 4.57 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 108.673 and 108.676 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 108.675 MeV
+Final transition order: 2
+  Result: Tc = 108.675 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 219.367663
+  Calculation time: 28.42 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 8/21 - Processing mu = 140.00 MeV
+  Adaptive temperature range: 80.0 - 110.7 MeV
+  (Based on previous Tc = 108.7 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=140.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 110.67 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 110.67 MeV...
+Calculation completed in 4.96 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 104.217 and 110.675 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 104.22 to 110.67 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 106.596 and 107.956 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 106.60 to 107.96 MeV...
+Calculation completed in 4.58 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 107.169 and 107.455 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 107.17 to 107.45 MeV...
+Calculation completed in 4.57 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 107.289 and 107.349 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 107.29 to 107.35 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 107.305 and 107.318 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 107.30 to 107.32 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 107.310 and 107.312 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 107.311 MeV
+Final transition order: 2
+  Result: Tc = 107.311 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 220.246007
+  Calculation time: 28.38 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 9/21 - Processing mu = 160.00 MeV
+  Adaptive temperature range: 80.0 - 109.3 MeV
+  (Based on previous Tc = 107.3 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=160.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 109.31 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 109.31 MeV...
+Calculation completed in 4.96 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 103.140 and 109.311 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 103.14 to 109.31 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.089 and 106.388 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 105.09 to 106.39 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.636 and 105.909 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 105.64 to 105.91 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.737 and 105.794 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 105.74 to 105.79 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.767 and 105.779 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 105.77 to 105.78 MeV...
+Calculation completed in 4.60 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 105.772 and 105.775 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 105.773 MeV
+Final transition order: 2
+  Result: Tc = 105.773 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 221.252900
+  Calculation time: 28.49 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 10/21 - Processing mu = 180.00 MeV
+  Adaptive temperature range: 80.0 - 107.8 MeV
+  (Based on previous Tc = 105.8 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=180.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 107.77 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 107.77 MeV...
+Calculation completed in 4.89 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 100.465 and 106.312 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 100.46 to 106.31 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 103.234 and 104.465 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 103.23 to 104.47 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 103.947 and 104.206 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 103.95 to 104.21 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 104.029 and 104.083 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 104.03 to 104.08 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 104.046 and 104.057 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 104.05 to 104.06 MeV...
+Calculation completed in 4.68 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 104.051 and 104.053 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 104.052 MeV
+Final transition order: 2
+  Result: Tc = 104.052 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 222.126969
+  Calculation time: 28.52 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 11/21 - Processing mu = 200.00 MeV
+  Adaptive temperature range: 80.0 - 106.1 MeV
+  (Based on previous Tc = 104.1 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=200.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 106.05 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 106.05 MeV...
+Calculation completed in 4.98 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 99.196 and 104.681 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 99.20 to 104.68 MeV...
+Calculation completed in 4.57 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 101.505 and 102.660 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 101.51 to 102.66 MeV...
+Calculation completed in 4.52 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 102.052 and 102.295 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 102.05 to 102.30 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 102.193 and 102.244 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 102.19 to 102.24 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 102.217 and 102.228 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 102.22 to 102.23 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 102.221 and 102.223 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 102.222 MeV
+Final transition order: 2
+  Result: Tc = 102.222 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 222.949764
+  Calculation time: 28.33 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 12/21 - Processing mu = 220.00 MeV
+  Adaptive temperature range: 80.0 - 104.2 MeV
+  (Based on previous Tc = 102.2 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=220.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 104.22 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 104.22 MeV...
+Calculation completed in 4.71 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 97.848 and 102.947 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 97.85 to 102.95 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 99.726 and 100.800 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 99.73 to 100.80 MeV...
+Calculation completed in 4.63 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 100.065 and 100.291 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 100.07 to 100.29 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 100.184 and 100.232 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 100.18 to 100.23 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 100.212 and 100.222 MeV
+Transition order: 2
+
+--- Iteration 6 ---
+Calculating sigma values for 20 temperatures from 100.21 to 100.22 MeV...
+Calculation completed in 4.69 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 100.218 and 100.220 MeV
+Transition order: 2
+
+Zoom completed after 6 iterations
+Final critical temperature: 100.219 MeV
+Final transition order: 2
+  Result: Tc = 100.219 MeV, Order = 2 (Crossover/2nd order)
+  Max sigma = 223.611383
+  Calculation time: 28.29 seconds
+  Iterations: 6
+  Total temperature points evaluated: 120
+
+Progress: 13/21 - Processing mu = 240.00 MeV
+  Adaptive temperature range: 80.0 - 102.2 MeV
+  (Based on previous Tc = 100.2 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=240.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 102.22 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 102.22 MeV...
+Calculation completed in 4.87 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 95.203 and 99.880 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 95.20 to 99.88 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 97.665 and 98.649 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 97.66 to 98.65 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 98.027 and 98.235 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 98.03 to 98.23 MeV...
+Calculation completed in 4.72 seconds
+First order transition detected
+Critical temperature is 98.093 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 98.071 - 98.115 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 98.07 to 98.11 MeV...
+Calculation completed in 4.66 seconds
+First order transition detected
+Critical temperature is 98.092 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 5 iterations
+Final critical temperature: 98.092 MeV
+Final transition order: 1
+  Result: Tc = 98.092 MeV, Order = 1 (First order)
+  Max sigma = 224.039539
+  Calculation time: 23.79 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 14/21 - Processing mu = 260.00 MeV
+  Adaptive temperature range: 80.0 - 100.1 MeV
+  (Based on previous Tc = 98.1 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=260.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 100.09 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 100.09 MeV...
+Calculation completed in 4.88 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 92.690 and 96.919 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 92.69 to 96.92 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 95.361 and 96.252 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 95.36 to 96.25 MeV...
+Calculation completed in 4.70 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 95.736 and 95.923 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 95.74 to 95.92 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 95.756 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 95.736 - 95.766 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 95.74 to 95.77 MeV...
+Calculation completed in 4.69 seconds
+First order transition detected
+Critical temperature is 95.756 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 5 iterations
+Final critical temperature: 95.756 MeV
+Final transition order: 1
+  Result: Tc = 95.756 MeV, Order = 1 (First order)
+  Max sigma = 224.154151
+  Calculation time: 23.83 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 15/21 - Processing mu = 280.00 MeV
+  Adaptive temperature range: 80.0 - 97.8 MeV
+  (Based on previous Tc = 95.8 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=280.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 97.76 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 97.76 MeV...
+Calculation completed in 4.78 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 91.214 and 94.953 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 91.21 to 94.95 MeV...
+Calculation completed in 4.66 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 92.985 and 93.772 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 92.99 to 93.77 MeV...
+Calculation completed in 4.67 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 93.358 and 93.524 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 93.36 to 93.52 MeV...
+Calculation completed in 4.70 seconds
+First order transition detected
+Critical temperature is 93.402 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 93.384 - 93.419 MeV
+Transition order: 2
+
+--- Iteration 5 ---
+Calculating sigma values for 20 temperatures from 93.38 to 93.42 MeV...
+Calculation completed in 4.66 seconds
+First order transition detected
+Critical temperature is 93.402 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 5 iterations
+Final critical temperature: 93.402 MeV
+Final transition order: 1
+  Result: Tc = 93.402 MeV, Order = 1 (First order)
+  Max sigma = 223.814302
+  Calculation time: 23.69 seconds
+  Iterations: 5
+  Total temperature points evaluated: 100
+
+Progress: 16/21 - Processing mu = 300.00 MeV
+  Adaptive temperature range: 80.0 - 95.4 MeV
+  (Based on previous Tc = 93.4 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=300.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 95.40 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 95.40 MeV...
+Calculation completed in 4.87 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 88.917 and 92.160 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 88.92 to 92.16 MeV...
+Calculation completed in 4.57 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 90.624 and 91.307 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 90.62 to 91.31 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 91.055 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 90.947 - 91.091 MeV
+Transition order: 2
+
+--- Iteration 4 ---
+Calculating sigma values for 20 temperatures from 90.95 to 91.09 MeV...
+Calculation completed in 4.66 seconds
+First order transition detected
+Critical temperature is 91.030 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 4 iterations
+Final critical temperature: 91.030 MeV
+Final transition order: 1
+  Result: Tc = 91.030 MeV, Order = 1 (First order)
+  Max sigma = 222.987834
+  Calculation time: 18.95 seconds
+  Iterations: 4
+  Total temperature points evaluated: 80
+
+Progress: 17/21 - Processing mu = 320.00 MeV
+  Adaptive temperature range: 80.0 - 93.0 MeV
+  (Based on previous Tc = 91.0 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=320.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 93.03 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 93.03 MeV...
+Calculation completed in 4.85 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 86.858 and 89.601 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 86.86 to 89.60 MeV...
+Calculation completed in 4.57 seconds
+First order transition detected
+Critical temperature is 88.591 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 88.158 - 88.735 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 88.16 to 88.74 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 88.462 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 3 iterations
+Final critical temperature: 88.462 MeV
+Final transition order: 1
+  Result: Tc = 88.462 MeV, Order = 1 (First order)
+  Max sigma = 221.035512
+  Calculation time: 14.21 seconds
+  Iterations: 3
+  Total temperature points evaluated: 60
+
+Progress: 18/21 - Processing mu = 340.00 MeV
+  Previous Tc (88.5) close to tmin - decreasing tmin by 10 MeV
+  Adaptive temperature range: 70.0 - 90.5 MeV
+  (Based on previous Tc = 88.5 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=340.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 70.00 - 90.46 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 70.00 to 90.46 MeV...
+Calculation completed in 4.77 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 82.923 and 87.231 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 82.92 to 87.23 MeV...
+Calculation completed in 4.66 seconds
+First order transition detected
+Critical temperature is 85.870 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 85.190 - 86.097 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 85.19 to 86.10 MeV...
+Calculation completed in 4.66 seconds
+First order transition detected
+Critical temperature is 85.811 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 3 iterations
+Final critical temperature: 85.811 MeV
+Final transition order: 1
+  Result: Tc = 85.811 MeV, Order = 1 (First order)
+  Max sigma = 228.951199
+  Calculation time: 14.21 seconds
+  Iterations: 3
+  Total temperature points evaluated: 60
+
+Progress: 19/21 - Processing mu = 360.00 MeV
+  Adaptive temperature range: 80.0 - 87.8 MeV
+  (Based on previous Tc = 85.8 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=360.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 80.00 - 87.81 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 80.00 to 87.81 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 83.289 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 82.055 - 83.700 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 82.06 to 83.70 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 83.094 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 2 iterations
+Final critical temperature: 83.094 MeV
+Final transition order: 1
+  Result: Tc = 83.094 MeV, Order = 1 (First order)
+  Max sigma = 213.466388
+  Calculation time: 9.43 seconds
+  Iterations: 2
+  Total temperature points evaluated: 40
+
+Progress: 20/21 - Processing mu = 380.00 MeV
+  Previous Tc (83.1) close to tmin - decreasing tmin by 10 MeV
+  Adaptive temperature range: 70.0 - 85.1 MeV
+  (Based on previous Tc = 83.1 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=380.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 70.00 - 85.09 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 70.00 to 85.09 MeV...
+Calculation completed in 4.86 seconds
+Crossover or 2nd order transition detected
+Pseudo-critical temperature is between 78.739 and 81.916 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 78.74 to 81.92 MeV...
+Calculation completed in 4.68 seconds
+First order transition detected
+Critical temperature is 80.411 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 80.077 - 80.746 MeV
+Transition order: 2
+
+--- Iteration 3 ---
+Calculating sigma values for 20 temperatures from 80.08 to 80.75 MeV...
+Calculation completed in 4.67 seconds
+First order transition detected
+Critical temperature is 80.429 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 3 iterations
+Final critical temperature: 80.429 MeV
+Final transition order: 1
+  Result: Tc = 80.429 MeV, Order = 1 (First order)
+  Max sigma = 227.110725
+  Calculation time: 14.35 seconds
+  Iterations: 3
+  Total temperature points evaluated: 60
+
+Progress: 21/21 - Processing mu = 400.00 MeV
+  Adaptive temperature range: 77.4 - 82.4 MeV
+  (Based on previous Tc = 80.4 MeV)
+Starting critical zoom for mq=12.0 MeV, mu=400.0 MeV, lambda1=5.8
+Using v3=-2.640, v4=4.200
+Initial temperature range: 77.43 - 82.43 MeV
+
+--- Iteration 1 ---
+Calculating sigma values for 20 temperatures from 77.43 to 82.43 MeV...
+Calculation completed in 4.56 seconds
+First order transition detected
+Critical temperature is 77.692 MeV (lowest T with 3 sigma values)
+First order detected on first check - zooming in for more precision
+Zooming in on region: 77.429 - 77.955 MeV
+Transition order: 2
+
+--- Iteration 2 ---
+Calculating sigma values for 20 temperatures from 77.43 to 77.96 MeV...
+Calculation completed in 4.79 seconds
+First order transition detected
+Critical temperature is 77.678 MeV (lowest T with 3 sigma values)
+Transition order: 1
+
+Zoom completed after 2 iterations
+Final critical temperature: 77.678 MeV
+Final transition order: 1
+  Result: Tc = 77.678 MeV, Order = 1 (First order)
+  Max sigma = 200.797717
+  Calculation time: 9.43 seconds
+  Iterations: 2
+  Total temperature points evaluated: 40
+
+Results saved to: phase_data/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.csv
+
+======================================================================
+SUMMARY:
+Total points processed: 21
+Successful calculations: 21
+First order transitions: 9
+Crossover/2nd order: 12
+Critical temperature range: 77.678 - 112.492 MeV
+Total iterations across all mu values: 102
+Total temperature points evaluated: 2040
+Average iterations per mu: 4.9
+Average temperature points per mu: 97.1
+CPU cores utilized: 20
+Total calculation time: 484.60 seconds (8.08 minutes)
+Average time per successful calculation: 23.08 seconds
+Loaded existing axial melting data from axial_data/axial_melting_data_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.csv
+Phase diagram plot saved to: phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.png
+Copying results to shared project directory...
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.csv -> /net/project/QUENCH/phase_data/
+'phase_data/phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.csv' -> '/net/project/QUENCH/phase_data/phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.csv'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.5_gamma_-22.4_lambda4_4.2.png'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.6_gamma_-22.4_lambda4_4.2.png'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.7_gamma_-22.4_lambda4_4.2.png'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.8_gamma_-22.4_lambda4_4.2.png'
+Copying: phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_5.9_gamma_-22.4_lambda4_4.2.png'
+Copying: phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.png -> /net/project/QUENCH/phase_plots/
+'phase_plots/phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.png' -> '/net/project/QUENCH/phase_plots/phase_diagram_improved_mq_12.0_lambda1_6.0_gamma_-22.4_lambda4_4.2.png'
+Processing sigma calculation data for task 4...
+Appending to existing shared sigma file: /net/project/QUENCH/sigma_data/sigma_calculations.csv
+Task backup saved: /net/project/QUENCH/sigma_data/sigma_backup_task4_20250904_155943.csv (50558 lines)
+SUCCESS: Task 4 completed at Thu Sep  4 15:59:43 EDT 2025
+Parameters: mq=12.0, lambda1=5.8, gamma=-22.4
+Results copied to shared directory: /net/project/QUENCH
+Task finished at Thu Sep  4 15:59:43 EDT 2025

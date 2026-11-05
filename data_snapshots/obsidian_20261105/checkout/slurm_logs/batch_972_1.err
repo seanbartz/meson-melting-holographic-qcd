@@ -1,0 +1,10 @@
+usage: batch_phase_diagram_scan.py [-h] -lambda1 LAMBDA1 -mq MQ --parameter
+                                   {gamma,lambda4}
+                                   (--values VALUES [VALUES ...] | --range MIN MAX)
+                                   [--num-values NUM_VALUES] [-mumin MUMIN]
+                                   [-mumax MUMAX] [-mupoints MUPOINTS]
+                                   [-tmin TMIN] [-tmax TMAX]
+                                   [-maxiter MAXITER] [-gammafixed GAMMAFIXED]
+                                   [-lambda4fixed LAMBDA4FIXED] [--no-axial]
+                                   [--no-vector] [--skip-existing]
+batch_phase_diagram_scan.py: error: the following arguments are required: --parameter
