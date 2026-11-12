@@ -205,71 +205,52 @@ def psi_m(u, w, zh, Q):
     
     return [psim, psim_p]
 
-#Ratio of B and A; 
+# Tolerances of the spectral integration (was LSODA at rtol 1e-8 with two separate solves)
+SPECTRAL_RTOL = 1e-10
+SPECTRAL_ATOL = 1e-30
+
+
+def wronskian_growth(ui, uf, zh, mug, Q):
+    """
+    W(uf)/W(ui) for psi'' = (1/u - f'/f + phi') psi' + (...) psi (Abel's identity):
+    W(uf) = W(ui) (uf/ui) (f(ui)/f(uf)) exp[phi(uf) - phi(ui)].
+    """
+    return (uf/ui)*(f(ui, Q)[0]/f(uf, Q)[0])*np.exp(phi(uf, zh, mug)[0] - phi(ui, zh, mug)[0])
+
+
+def BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf):
+    """
+    B/A = (psi2' - i k psi2)/(psi1' - i k psi1), k = w zh/(2(2-Q^2)(1-uf)), with the
+    imaginary part k W(uf)/(psi1'^2 + k^2 psi1^2) evaluated with the exact Wronskian
+    (PROJECT_ASSESSMENT.md §3.4b; same as axial_spectra.BA_from_horizon_data).
+    """
+    k = w*zh/(2*(2 - Q**2)*(1 - uf))
+    denom = psi1p**2 + (k*psi1)**2
+    return complex((psi1p*psi2p + k**2*psi1*psi2)/denom, k*W_uf/denom)
+
+
+#Ratio of B and A
 def BA(w, Q, zh, mug):
     v_1, v_2 = vs(ui, w, zh, mug, Q)
-    
-    psi1s = solve_ivp(
-        lambda u, y: vector_eom(y, u, w, Q, zh, mug),
-        [ui, uf],
-        v_1,
-        method='LSODA',
-        rtol=1e-8,
-        atol=1e-10
-    )
-    
-    psi2s = solve_ivp(
-        lambda u, y: vector_eom(y, u, w, Q, zh, mug),
-        [ui, uf],
-        v_2,
-        method='LSODA',
-        rtol=1e-8,
-        atol=1e-10
-    )
-    
-    psi1 = psi1s.y[0][-1]
-    if(psi1 == 0 or psi1 == float('NaN')): 
-        print("psi1 " + str(psi1), flush=True)
-        print("w " + str(w), flush=True)
-    
-    psi1p = psi1s.y[1][-1]
-    if(psi1p == 0 or psi1p == float('NaN')): 
-        print("psi1 " + str(psi1p), flush=True)
-        print("w " + str(w), flush=True)
-    
-    psi2 = psi2s.y[0][-1]
-    if(psi2 == 0 or psi2 == float('NaN')): 
-        print("psi2 " + str(psi2), flush=True)
-        print("w " + str(w), flush=True)
-    
-    psi2p = psi2s.y[1][-1]
-    if(psi2p == 0 or psi2p == float('NaN')): 
-        print("psi2p " + str(psi2p), flush=True)
-        print("w " + str(w), flush=True)
-        
-    psim = psi_m(uf, w, zh, Q)
-    if(psim == 0 or psim == float('NaN')): 
-        print("psi2p " + str(psim), flush=True)
-        print("w " + str(w), flush=True)
-    
-    numerator = ((psim[0]*psi2p)-(psim[1]*psi2))
-    denominator = ((psim[0]*psi1p)-(psim[1]*psi1))
 
-    try:
-        B_A = (numerator/denominator)
-        
-    except:
-        print("Error at w value: " + str(w), flush=True)
-        print("psi-minus at w: " + str(psim[0]), flush=True)
-        print("psi-minus-prime at w: " + str(psim[1]), flush=True)
-        print("psi1 at w: " + str(psi1), flush=True)
-        print("psi1-prime at w: " + str(psi1p), flush=True)
-        print("psi2 at w: " + str(psi2), flush=True)
-        print("psi2-prime at w: " + str(psi2p), flush=True)
-        
-        B_A = 0
-    
-    return B_A
+    def eom2(u, y):
+        d1 = vector_eom(y[0:2], u, w, Q, zh, mug)
+        d2 = vector_eom(y[2:4], u, w, Q, zh, mug)
+        return [d1[0], d1[1], d2[0], d2[1]]
+
+    sol = solve_ivp(eom2, [ui, uf], [v_1[0], v_1[1], v_2[0], v_2[1]],
+                    method='DOP853', rtol=SPECTRAL_RTOL, atol=SPECTRAL_ATOL)
+    psi1, psi1p, psi2, psi2p = sol.y[:, -1]
+    if sol.status != 0 or not np.all(np.isfinite(sol.y[:, -1])):
+        # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
+        raise RuntimeError(f"vector integration failed at w = {w} MeV: {sol.message}")
+
+    W_ui = v_1[0]*v_2[1] - v_2[0]*v_1[1]
+    W_uf = W_ui*wronskian_growth(ui, uf, zh, mug, Q)
+    result = BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
+    if not np.isfinite(result.real) or not np.isfinite(result.imag):
+        raise RuntimeError(f"vector spectral function not finite at w = {w} MeV: {result}")
+    return result
 
 #calculate the data set
 def calculate_data(wi, wf, wcount, wresolution, Q, zh, mug, expected_peaks=None):

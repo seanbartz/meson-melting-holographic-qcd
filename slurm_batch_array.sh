@@ -200,11 +200,14 @@ echo "  maxiter = $MAXITER"
 # module load numpy scipy matplotlib pandas
 
 # Set environment and change to submit directory
+# Name of the sigma log written by chiral_solve_complete.SIGMA_LOG_FILE (v2: zhat scheme with log terms;
+# kept separate from the old sigma_calculations.csv, whose rows are in the old scheme)
+SIGMA_LOG_NAME="sigma_calculations_v2.csv"
 export PYTHONPATH=$PYTHONPATH:$PWD
 cd $SLURM_SUBMIT_DIR
 
 # Create pre-job snapshot of shared sigma file (only for first task to avoid duplicates)
-if [[ $TASK_ID -eq 1 && -n "$SHARED_SIGMA_DIR" && -d "$SHARED_SIGMA_DIR" && -f "$SHARED_SIGMA_DIR/sigma_calculations.csv" ]]; then
+if [[ $TASK_ID -eq 1 && -n "$SHARED_SIGMA_DIR" && -d "$SHARED_SIGMA_DIR" && -f "$SHARED_SIGMA_DIR/${SIGMA_LOG_NAME}" ]]; then
     SNAPSHOT_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     SNAPSHOT_FILE="$SHARED_SIGMA_DIR/sigma_snapshot_before_array_${SLURM_ARRAY_JOB_ID}_${SNAPSHOT_TIMESTAMP}.csv"
     
@@ -212,7 +215,7 @@ if [[ $TASK_ID -eq 1 && -n "$SHARED_SIGMA_DIR" && -d "$SHARED_SIGMA_DIR" && -f "
     SNAPSHOT_LOCK="$SHARED_SIGMA_DIR/.snapshot_lock"
     if [[ ! -f "$SNAPSHOT_LOCK" ]]; then
         touch "$SNAPSHOT_LOCK"
-        cp "$SHARED_SIGMA_DIR/sigma_calculations.csv" "$SNAPSHOT_FILE"
+        cp "$SHARED_SIGMA_DIR/${SIGMA_LOG_NAME}" "$SNAPSHOT_FILE"
         echo "Created pre-array snapshot: $SNAPSHOT_FILE"
         
         # Log the snapshot creation
@@ -294,10 +297,10 @@ if [[ -n "$SHARED_DATA_DIR" && -d "$SHARED_DATA_DIR" ]]; then
     fi
     
     # Handle sigma data files (append to avoid overwriting)
-    if [[ -d "$LOCAL_SIGMA_DIR" && -f "$LOCAL_SIGMA_DIR/sigma_calculations.csv" ]]; then
+    if [[ -d "$LOCAL_SIGMA_DIR" && -f "$LOCAL_SIGMA_DIR/${SIGMA_LOG_NAME}" ]]; then
         echo "Processing sigma calculation data for task $TASK_ID..."
-        SHARED_SIGMA_FILE="$SHARED_SIGMA_DIR/sigma_calculations.csv"
-        LOCAL_SIGMA_FILE="$LOCAL_SIGMA_DIR/sigma_calculations.csv"
+        SHARED_SIGMA_FILE="$SHARED_SIGMA_DIR/${SIGMA_LOG_NAME}"
+        LOCAL_SIGMA_FILE="$LOCAL_SIGMA_DIR/${SIGMA_LOG_NAME}"
         
         # Use file locking to prevent race conditions between parallel tasks
         LOCK_FILE="$SHARED_SIGMA_DIR/.sigma_lock"
