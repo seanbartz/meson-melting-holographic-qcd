@@ -380,7 +380,7 @@ def horizon_coefficients(d0, b, Q2, lambda1, lam3, lam4, order):
     """
     Taylor coefficients d_0..d_order of the regular solution at the horizon, by
     recursion (any order; no typed-in formulas).  d_1 and d_2 equal the closed forms
-    used before (checked in tests/test_chiral_scheme.py).
+    used before (checked in tests/test_numerical_scheme.py).
     """
     P, R = _background_polynomials(b, Q2)
     M = np.zeros(_POLY_LEN)
@@ -722,9 +722,11 @@ def calculate_sigma_values(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lo
         chiral_fields.append(res['chi'])
         chiral_derivatives.append(res['chip'])
 
-    if log_results:
+    if log_results and valid_sigma_values:
         log_sigma_calculation(mq_input, mq_tolerance, T, mu, lambda1, ui, uf, d0_lower, d0_upper,
                               v3, v4, valid_sigma_values, valid_d0_approx_list)
+    elif log_results:
+        print(f"No valid chiral solution for mq={mq_input}, T={T}, mu={mu}, lambda1={lambda1}; nothing logged")
 
     return {
         "sigma_values": np.array(valid_sigma_values),
