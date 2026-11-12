@@ -197,3 +197,36 @@ def test_parallel_axial_spectrum_uses_the_chiral_field():
     for w, ba in zip(ws, BAs):
         serial = A.BA(1e-2, 1 - 1e-4, w, g5, zh, MQ, mug, zeta, sigma, Q, l1, l3, l4)
         assert ba == pytest.approx(serial, rel=1e-9)
+
+
+def test_axial_cache_rejects_pre_fix_files(tmp_path, monkeypatch):
+    """Caches written before the chi = 0 fix carry no solver tag and must not be loaded."""
+    import pandas as pd
+    import axial_spectra as A
+    monkeypatch.chdir(tmp_path)
+    ws = np.array([1000.0, 1100.0])
+    BAs = np.array([1 - 1j, 2 - 2j])
+    A.save_data(ws, BAs, np.array([1000.0]), np.array([1 - 1j]), 440.0, 60.0, 0.0, MQ, LAM1, sigma=2.7e7)
+    cached = A.load_cached_data(60.0, 0.0, MQ, LAM1)
+    assert cached is not None and cached[5] == pytest.approx(2.7e7)
+    # strip the tag, as in a file written by the old code
+    _, _, _, params_fn = A._spectral_data_paths(60.0, 0.0, MQ, LAM1)
+    params = pd.read_csv(params_fn).drop(columns=['spectral_solver'])
+    params.to_csv(params_fn, index=False)
+    assert A.load_cached_data(60.0, 0.0, MQ, LAM1) is None
+
+
+def test_failed_frequency_point_raises(monkeypatch):
+    """A failed integration must not come back as a NaN point in the spectrum."""
+    import axial_spectra as A
+    T = 60.0
+    sigma, A.chi_interp = _chi_interp(T)
+    mug, zh, Q, l1, l3, l4, g5, zeta = A.calculate_variables(LAM1, T, 0.0)
+
+    class Failed:
+        status = -1
+        message = "forced failure"
+        y = np.full((4, 1), np.nan)
+    monkeypatch.setattr(A, "solve_ivp", lambda *a, **k: Failed())
+    with pytest.raises(RuntimeError):
+        A.BA(1e-2, 1 - 1e-4, 1200.0, g5, zh, MQ, mug, zeta, sigma, Q, l1, l3, l4)

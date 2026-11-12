@@ -242,12 +242,15 @@ def BA(w, Q, zh, mug):
                     method='DOP853', rtol=SPECTRAL_RTOL, atol=SPECTRAL_ATOL)
     psi1, psi1p, psi2, psi2p = sol.y[:, -1]
     if sol.status != 0 or not np.all(np.isfinite(sol.y[:, -1])):
-        print(f"Warning: vector integration failed at w = {w}: {sol.message}", flush=True)
-        return complex(np.nan, np.nan)
+        # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
+        raise RuntimeError(f"vector integration failed at w = {w} MeV: {sol.message}")
 
     W_ui = v_1[0]*v_2[1] - v_2[0]*v_1[1]
     W_uf = W_ui*wronskian_growth(ui, uf, zh, mug, Q)
-    return BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
+    result = BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
+    if not np.isfinite(result.real) or not np.isfinite(result.imag):
+        raise RuntimeError(f"vector spectral function not finite at w = {w} MeV: {result}")
+    return result
 
 #calculate the data set
 def calculate_data(wi, wf, wcount, wresolution, Q, zh, mug, expected_peaks=None):

@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 import glob
 import datetime
-from chiral_solve_complete import calculate_sigma_values
+from chiral_solve_complete import calculate_sigma_values, SOLVER_SCHEME
 
 # Global parameters (defaults that can be overridden)
 # mu = 0  # MeV, Chemical Potential
@@ -418,6 +418,11 @@ def psi_m(u, w, zh, Q):
     
     return [psim, psim_p]
 
+# Version tag of the spectral solver, stored in the params file of every cached spectrum.
+# Caches without it (or with another tag) predate the exact-Wronskian formula and the fix
+# of chi = 0 in the parallel workers, and are never loaded.
+SPECTRAL_SOLVER_VERSION = 'wronskian_chi_explicit_v1'
+
 # Tolerances of the spectral integration (was LSODA at rtol 1e-8 with two separate solves)
 SPECTRAL_RTOL = 1e-10
 SPECTRAL_ATOL = 1e-30
@@ -465,13 +470,16 @@ def BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, ch
                     method='DOP853', rtol=SPECTRAL_RTOL, atol=SPECTRAL_ATOL)
     psi1, psi1p, psi2, psi2p = sol.y[:, -1]
     if sol.status != 0 or not np.all(np.isfinite(sol.y[:, -1])):
-        print(f"Warning: axial integration failed at w = {w}: {sol.message}", flush=True)
-        return complex(np.nan, np.nan)
+        # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
+        raise RuntimeError(f"axial integration failed at w = {w} MeV: {sol.message}")
 
     # Wronskian at ui from the UV series, carried to uf exactly
     W_ui = a_1[0]*a_2[1] - a_2[0]*a_1[1]
     W_uf = W_ui*wronskian_growth(ui, uf, zh, mug, Q)
-    return BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
+    result = BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
+    if not np.isfinite(result.real) or not np.isfinite(result.imag):
+        raise RuntimeError(f"axial spectral function not finite at w = {w} MeV: {result}")
+    return result
 
 def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value):
     global chi_interp
@@ -789,37 +797,20 @@ def _spectral_data_paths(T, mu, mq, lambda1):
     )
     return data_dir, spectral_filename, peaks_filename, params_filename
 
-def _legacy_spectral_data_paths(T, mu, mq, lambda1):
-    """Return legacy filenames for spectral, peaks, and params data (no underscores, lambda label)."""
-    data_dir = os.path.join('mu_g_440', 'axial_data')
-    t_str = _format_param(T)
-    mu_str = _format_param(mu)
-    mq_str = _format_param(mq)
-    lambda1_str = _format_param(lambda1)
-    spectral_filename = os.path.join(
-        data_dir,
-        f"axial_spectral_data_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
-    )
-    peaks_filename = os.path.join(
-        data_dir,
-        f"axial_peaks_data_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
-    )
-    params_filename = os.path.join(
-        data_dir,
-        f"axial_params_T{t_str}_mu{mu_str}_mq{mq_str}_lambda{lambda1_str}.csv"
-    )
-    return data_dir, spectral_filename, peaks_filename, params_filename
-
 def load_cached_data(T, mu, mq, lambda1):
-    """Load cached spectral data if all required files exist."""
-    candidates = [
-        _spectral_data_paths(T, mu, mq, lambda1),
-        _legacy_spectral_data_paths(T, mu, mq, lambda1),
-    ]
-    for data_dir, spectral_filename, peaks_filename, params_filename in candidates:
-        if os.path.exists(spectral_filename) and os.path.exists(peaks_filename):
-            break
-    else:
+    """
+    Load cached spectral data if all required files exist and were written by the current
+    spectral solver (SPECTRAL_SOLVER_VERSION and chiral SOLVER_SCHEME in the params file).
+    Older caches, including every legacy-named file, were computed with chi = 0 in the
+    parallel path and are skipped.  Returns (ws, BAs, peakws, peakBAs, mug, sigma) or None.
+    """
+    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1)
+    if not all(os.path.exists(fn) for fn in (spectral_filename, peaks_filename, params_filename)):
+        return None
+    params_data = pd.read_csv(params_filename)
+    if (params_data.get('spectral_solver', pd.Series([None])).iloc[0] != SPECTRAL_SOLVER_VERSION or
+            params_data.get('chiral_scheme', pd.Series([None])).iloc[0] != SOLVER_SCHEME):
+        print(f"Ignoring cache {spectral_filename}: written by an older solver (recomputing)")
         return None
 
     spectral_data = pd.read_csv(spectral_filename)
@@ -830,15 +821,11 @@ def load_cached_data(T, mu, mq, lambda1):
     peakws = peaks_data['peak_omega'].to_numpy()
     peakBAs = peaks_data['peak_spectral_function_real'].to_numpy() + 1j * peaks_data['peak_spectral_function_imag'].to_numpy()
 
-    if os.path.exists(params_filename):
-        params_data = pd.read_csv(params_filename)
-        mug = float(params_data['mu_g'].iloc[0])
-    else:
-        mug, _, _, _, _, _, _, _ = calculate_variables(lambda1, T, mu)
+    mug = float(params_data['mu_g'].iloc[0])
+    sigma = float(params_data['sigma'].iloc[0]) if 'sigma' in params_data else np.nan
+    return ws, BAs, peakws, peakBAs, mug, sigma
 
-    return ws, BAs, peakws, peakBAs, mug
-
-def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
+def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma=np.nan):
     """Save the spectral data and peak data to CSV files in a lambda1 subfolder (truncated to 1 decimal place)"""
     # Ensure data directory exists in mu_g_440 directory (no further subfolders)
     data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1)
@@ -877,7 +864,10 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1):
         'lambda1': [lambda1],
         'mu_g': [mug],
         'z_h': [zh],
-        'Q': [Q]
+        'Q': [Q],
+        'sigma': [sigma],
+        'spectral_solver': [SPECTRAL_SOLVER_VERSION],
+        'chiral_scheme': [SOLVER_SCHEME],
     })
     params_data.to_csv(params_filename, index=False)
     print(f"Parameters saved to {params_filename}")
@@ -926,12 +916,12 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     if load_if_exists:
         cached = load_cached_data(T, mu, mq, lambda1_value)
         if cached is not None:
-            ws, BAs, peakws, peakBAs, mug = cached
+            ws, BAs, peakws, peakBAs, mug, cached_sigma = cached
             print("Loaded cached axial spectral data.")
             last_used_cache = True
             if show_plot:
                 plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot, lambda1=lambda1_value)
-            return (ws, BAs, peakws, peakBAs, mug, np.nan)
+            return (ws, BAs, peakws, peakBAs, mug, cached_sigma)
 
     print(f"Computing axial vector spectral function with parameters:")
     print(f"T = {T} MeV, μ = {mu} MeV, m_q = {mq}, λ₁ = {lambda1_value}")
@@ -962,7 +952,7 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     peakBAs = np.array(peakBAs)[peak_sort_indices]
     
     # Save the data
-    save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1)
+    save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma)
     # Plot and save the results (will always save, but only display if show_plot is True)
     plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot, lambda1=lambda1_value)
     # Return sigma alongside spectral data
