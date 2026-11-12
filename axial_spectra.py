@@ -37,11 +37,6 @@ chi_interp = None
 # Track whether the most recent run loaded cached data
 last_used_cache = False
 
-# Default chiral field for when interpolation not available
-def default_chi(u, mq_value=None):
-    #If chi can't be solved for, use zero function. This just keeps the code from crashing, but results will be meaningless.
-    return 0
-
 #Blackness function. Returns f(u) and f'(u) as a list
 def f(u, Q):
     f = 1-((1+(Q**2))*(u**4))+((Q**2)*(u**6))
@@ -384,19 +379,20 @@ def a_s(u, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4):
     return (a_1, a_2)
 
 #Axial Equation of Motion; Must be solved using solve_ivp
-def Axial_eom(a, u, w, g5, Q, zh, mug, mq_value=None):
+def Axial_eom(a, u, w, g5, Q, zh, mug, mq_value=None, chi_func=None):
     fu = f(u, Q)
     phiu = phi(u, zh, mug)
     
     # Use provided mq_value if given, otherwise use global mq
     mq_val = mq_value if mq_value is not None else mq
     
-    # Check if chi_interp is available, otherwise use default
-    global chi_interp
-    if chi_interp is None:
-        chiu = default_chi(u, mq_val)
-    else:
-        chiu = chi_interp(u)
+    # chi_func is passed explicitly so that joblib workers see it: a worker process has
+    # its own copy of this module, in which the global chi_interp is None.  The old
+    # fallback chi = 0 silently turned the axial spectrum into the vector one there.
+    chi = chi_func if chi_func is not None else chi_interp
+    if chi is None:
+        raise RuntimeError("Axial_eom: no chiral field (chi_interp is None); refusing to use chi = 0")
+    chiu = chi(u)
     
     a1, a2 = a
     
@@ -422,113 +418,99 @@ def psi_m(u, w, zh, Q):
     
     return [psim, psim_p]
 
-#Ratio of B and A
-def BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4):
-    a_1, a_2 = a_s(ui, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
-    
-    psi1s = solve_ivp(
-        lambda u, y: Axial_eom(y, u, w, g5, Q, zh, mug, mq),
-        [ui, uf],
-        a_1,
-        method='LSODA',
-        rtol=1e-8,
-        atol=1e-10
-    )
-    
-    psi2s = solve_ivp(
-        lambda u, y: Axial_eom(y, u, w, g5, Q, zh, mug, mq),
-        [ui, uf],
-        a_2,
-        method='LSODA',
-        rtol=1e-8,
-        atol=1e-10
-    )
-    
-    psi1 = psi1s.y[0][-1]
-    if(psi1 == 0 or np.isnan(psi1)): 
-        print(f"psi1 {psi1}", flush=True)
-        print(f"w {w}", flush=True)
-    
-    psi1p = psi1s.y[1][-1]
-    if(psi1p == 0 or np.isnan(psi1p)): 
-        print(f"psi1p {psi1p}", flush=True)
-        print(f"w {w}", flush=True)
-    
-    psi2 = psi2s.y[0][-1]
-    if(psi2 == 0 or np.isnan(psi2)): 
-        print(f"psi2 {psi2}", flush=True)
-        print(f"w {w}", flush=True)
-    
-    psi2p = psi2s.y[1][-1]
-    if(psi2p == 0 or np.isnan(psi2p)): 
-        print(f"psi2p {psi2p}", flush=True)
-        print(f"w {w}", flush=True)
-    
-    psim = psi_m(uf, w, zh, Q)
-    if(psim[0] == 0 or np.isnan(psim[0])): 
-        print(f"psim {psim}", flush=True)
-        print(f"w {w}", flush=True)
-    
-    numerator = ((psim[0]*psi2p)-(psim[1]*psi2))
-    denominator = ((psim[0]*psi1p)-(psim[1]*psi1))
+# Tolerances of the spectral integration (was LSODA at rtol 1e-8 with two separate solves)
+SPECTRAL_RTOL = 1e-10
+SPECTRAL_ATOL = 1e-30
 
-    try:
-        B_A = (numerator/denominator)
-    except:
-        print(f"Error at w value: {w}", flush=True)
-        print(f"psi-minus at w: {psim[0]}", flush=True)
-        print(f"psi-minus-prime at w: {psim[1]}", flush=True)
-        print(f"psi1 at w: {psi1}", flush=True)
-        print(f"psi1-prime at w: {psi1p}", flush=True)
-        print(f"psi2 at w: {psi2}", flush=True)
-        print(f"psi2-prime at w: {psi2p}", flush=True)
-        
-        B_A = 0
-    
-    return B_A
+
+def wronskian_growth(ui, uf, zh, mug, Q):
+    """
+    W(uf)/W(ui) for psi'' = (1/u - f'/f + phi') psi' + (...) psi.
+
+    Abel's identity, W' = (1/u - f'/f + phi') W, integrates in closed form:
+    W(uf) = W(ui) (uf/ui) (f(ui)/f(uf)) exp[phi(uf) - phi(ui)].
+    """
+    return (uf/ui)*(f(ui, Q)[0]/f(uf, Q)[0])*np.exp(phi(uf, zh, mug)[0] - phi(ui, zh, mug)[0])
+
+
+def BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf):
+    """
+    B/A from the two UV solutions at u = uf, with psi_m = (1-u)^c, c = -i w zh/(2(2-Q^2)),
+    so that psi_m'/psi_m = i k, k = w zh/(2(2-Q^2)(1-uf)):
+
+        B/A = (psi2' - i k psi2)/(psi1' - i k psi1)
+        Re(B/A) = (psi1' psi2' + k^2 psi1 psi2)/(psi1'^2 + k^2 psi1^2)
+        Im(B/A) = k W(uf)/(psi1'^2 + k^2 psi1^2),   W = psi1 psi2' - psi2 psi1'.
+
+    W(uf) is passed in from Abel's identity rather than formed from psi1, psi2: at low T
+    both grow like exp(phi(1)) ~ e^68 at T = 17 MeV, and the numerical difference
+    psi1 psi2' - psi2 psi1' is then cancellation noise (PROJECT_ASSESSMENT.md §3.4b).
+    The denominator is a sum of squares, so nothing else cancels.
+    """
+    k = w*zh/(2*(2 - Q**2)*(1 - uf))
+    denom = psi1p**2 + (k*psi1)**2
+    return complex((psi1p*psi2p + k**2*psi1*psi2)/denom, k*W_uf/denom)
+
+
+#Ratio of B and A
+def BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_func=None):
+    a_1, a_2 = a_s(ui, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
+
+    def eom2(u, y):
+        d1 = Axial_eom(y[0:2], u, w, g5, Q, zh, mug, mq, chi_func)
+        d2 = Axial_eom(y[2:4], u, w, g5, Q, zh, mug, mq, chi_func)
+        return [d1[0], d1[1], d2[0], d2[1]]
+
+    sol = solve_ivp(eom2, [ui, uf], [a_1[0], a_1[1], a_2[0], a_2[1]],
+                    method='DOP853', rtol=SPECTRAL_RTOL, atol=SPECTRAL_ATOL)
+    psi1, psi1p, psi2, psi2p = sol.y[:, -1]
+    if sol.status != 0 or not np.all(np.isfinite(sol.y[:, -1])):
+        print(f"Warning: axial integration failed at w = {w}: {sol.message}", flush=True)
+        return complex(np.nan, np.nan)
+
+    # Wronskian at ui from the UV series, carried to uf exactly
+    W_ui = a_1[0]*a_2[1] - a_2[0]*a_1[1]
+    W_uf = W_ui*wronskian_growth(ui, uf, zh, mug, Q)
+    return BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf)
 
 def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value):
     global chi_interp
+
+    result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value)
+    sigma_values = result["sigma_values"]
+    if len(sigma_values) == 0:
+        # Never fall back to a made-up chi: that used to produce saved garbage spectra
+        raise RuntimeError(f"No chiral solution for mq={mq_value}, T={T_value}, mu={mu_value}, "
+                           f"lambda1={lambda1_value}; refusing to compute a spectrum")
+    chiral_fields = result["chiral_fields"]
+    u_values = result["u_values"]
     
-    try:
-        result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value)
-        sigma_values = result["sigma_values"]
-        chiral_fields = result["chiral_fields"]
-        u_values = result["u_values"]
-        
-        # Always print all sigma solutions and their cube roots
-        print(f"Sigma solutions found: {sigma_values}")
-        cube_roots = [s**(1/3) if s >= 0 else -((-s)**(1/3)) for s in sigma_values]
-        print(f"Cube roots of sigma: {[f'{cr:.1f}' for cr in cube_roots]}")
-        
-        # If multiple sigma values, use the smallest positive and print a message
-        if len(sigma_values) > 1:
-            positive_sigmas = [s for s in sigma_values if s > 0]
-            if positive_sigmas:
-                min_index = np.argmin(positive_sigmas)
-                selected_sigma = positive_sigmas[min_index]
-                # Find the index in the original sigma_values array
-                orig_index = np.where(sigma_values == selected_sigma)[0][0]
-                print(f"Using the smallest positive: {selected_sigma}")
-            else:
-                # Fallback: use the smallest by absolute value
-                min_index = np.argmin(np.abs(sigma_values))
-                selected_sigma = sigma_values[min_index]
-                print(f"No positive sigma found, using the smallest by absolute value: {selected_sigma}")
-                orig_index = min_index
+    # Always print all sigma solutions and their cube roots
+    print(f"Sigma solutions found: {sigma_values}")
+    cube_roots = [s**(1/3) if s >= 0 else -((-s)**(1/3)) for s in sigma_values]
+    print(f"Cube roots of sigma: {[f'{cr:.1f}' for cr in cube_roots]}")
+    
+    # If multiple sigma values, use the smallest positive and print a message
+    if len(sigma_values) > 1:
+        positive_sigmas = [s for s in sigma_values if s > 0]
+        if positive_sigmas:
+            min_index = np.argmin(positive_sigmas)
+            selected_sigma = positive_sigmas[min_index]
+            # Find the index in the original sigma_values array
+            orig_index = np.where(sigma_values == selected_sigma)[0][0]
+            print(f"Using the smallest positive: {selected_sigma}")
         else:
-            orig_index = 0
-            selected_sigma = sigma_values[0]
-            print(f"Using sigma: {selected_sigma}")
-        chi_interp = interp1d(u_values, chiral_fields[orig_index], bounds_error=False, fill_value="extrapolate")
-        return selected_sigma  # Return the selected sigma value
-    except Exception as e:
-        print(f"Warning: Error initializing chiral field, using default: {str(e)}")
-        # If sigma calculation fails, set chi=0
-        u_values = np.linspace(ui_value, uf_value, 1000)
-        chi_values = 0  # Default to zero function
-        chi_interp = interp1d(u_values, chi_values, bounds_error=False, fill_value="extrapolate")
-        return mq_value  # Return mq as approximate sigma value
+            # Fallback: use the smallest by absolute value
+            min_index = np.argmin(np.abs(sigma_values))
+            selected_sigma = sigma_values[min_index]
+            print(f"No positive sigma found, using the smallest by absolute value: {selected_sigma}")
+            orig_index = min_index
+    else:
+        orig_index = 0
+        selected_sigma = sigma_values[0]
+        print(f"Using sigma: {selected_sigma}")
+    chi_interp = interp1d(u_values, chiral_fields[orig_index], bounds_error=False, fill_value="extrapolate")
+    return selected_sigma  # Return the selected sigma value
 
 def clean_peaks(peakws, peakBAs, min_separation=10.0):
     """
@@ -599,30 +581,15 @@ def calculate_data(wi, wf, wcount, wresolution, ui, uf, g5, zh, mq, mug, zeta, s
     # Ensure chi_interp is available for parallel workers
     global chi_interp
     if chi_interp is None:
-        print("Warning: chi_interp not initialized, creating default linear chi field")
-        u_values = np.linspace(ui, uf, 1000)
-        chi_values = mq * u_values
-        chi_interp = interp1d(u_values, chi_values, bounds_error=False, fill_value="extrapolate")
+        raise RuntimeError("chi_interp not initialized: call initialize_chiral_field first")
     
     # Make a local copy of chi_interp for parallel processing
     local_chi_interp = chi_interp
     
-    # Modified BA function to use a local copy of chi_interp
+    # BA with the chiral field passed explicitly (setting the module global inside a
+    # pickled closure does not reach the copy of this module in a joblib worker)
     def BA_with_chi(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_interp_func):
-        # Store the global chi_interp
-        global chi_interp
-        old_chi_interp = chi_interp
-        
-        # Set the chi_interp to the provided function 
-        chi_interp = chi_interp_func
-        
-        try:
-            # Call the original BA function
-            result = BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
-            return result
-        finally:
-            # Restore the original chi_interp
-            chi_interp = old_chi_interp
+        return BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_func=chi_interp_func)
 
     # Pass the chi_interp function to each parallel task
     BAs = Parallel(n_jobs=-1)(
@@ -979,10 +946,7 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     
     # Verify chi_interp was set properly
     if chi_interp is None:
-        print("Warning: chi_interp is still None after initialization, creating default")
-        u_values = np.linspace(ui_value, uf_value, 1000)
-        chi_values = mq * u_values
-        chi_interp = interp1d(u_values, chi_values, bounds_error=False, fill_value="extrapolate")
+        raise RuntimeError("chi_interp is still None after initialization")
     
     # Calculate spectral function data with expected peak count
     ws, BAs, peakws, peakBAs = calculate_data(wi, wf, wcount, wresolution, ui_value, uf_value, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, expected_peaks)

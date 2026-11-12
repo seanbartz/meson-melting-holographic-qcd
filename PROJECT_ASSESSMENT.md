@@ -212,6 +212,16 @@ What the table shows:
    - Fix: failures should raise or be flagged. They must never become saved data.
 4. **Choice of solutions.** `sigma_of_T` pads with zeros and then filters `sigma != 0` (`chiral_solve_complete.py:514-515, 569-576`). That works but is fragile; return a list instead.
 
+**Status (2026-11-12): items 1 and 2 fixed, item 3 fixed for the chiral solver and the axial spectra.** The solver now follows the scheme of the 2+1-flavor code (`seanbartz/2p1-critical-point`, `physics/model.py`, `physics/series.py`):
+
+- *Scaling by μ_g, not z_h.* The equations are written with ẑ = μ_g z and b = (μ_g z_h)², with a = m_q ζ/μ_g and c = σ/(ζ μ_g³). The UV matching point is a fixed ẑ_UV = 0.005 (`SOLVER_SETTINGS['z_uv']`), not a fixed u, so the renormalization point no longer drifts like 1/T. The horizon start comes from a 10th-order horizon series (numerical recursion; it reproduces the old d₁ and d₂ to 1e-12). 1 − u is chosen so that the truncated term is below 1e-13, which moves the start toward the horizon by itself as b grows. `ui` and `uf` now only set the grid on which χ(u) is handed to the spectral codes.
+- *Log terms.* χ = aẑ + Bẑ² + (c + D ln ẑ)ẑ³ + (E + F ln ẑ)ẑ⁴ + (G + H ln ẑ)ẑ⁵, derived by `derivations/derive_chiral_uv_series.py` into `chiral_uv_series_generated.py`, is inverted for (a, c) by Newton iteration. D equals the c of item 2. The scheme is "μ_g inside the logarithm". `condensate_in_scheme` converts to another scale, with M = 1 MeV giving the convention of `criticalZoom.py`. The shift is ∝ m_q and does not depend on T or μ.
+- *Tolerances.* DOP853 at rtol = 1e-11. Roots of m_q(d₀) = m_q are solved with Brent's method rather than by linear interpolation across the bracket. A failed shoot returns NaN and is dropped, never saved.
+- *Measured* (m_q = 9, λ₁ = 7.438, μ = 0): σ^(1/3) = 300.681, 301.091 and 295.816 MeV at T = 17, 60 and 120 MeV. σ^(1/3) changes by ≤ 2e-5 MeV between ẑ_UV = 0.002 and 0.005 (the old extraction moved ~3 MeV per decade), and by < 3e-6 MeV between rtol = 1e-11 and 1e-13. The returned m_q equals the target to 2e-7 MeV even at T = 17 MeV, where the old solver diverged. These values are in a different scheme from all earlier σ values, so old σ numbers cannot be compared with them directly.
+- New results go to `sigma_data/sigma_calculations_v2.csv`, with `z_uv` and `scheme` columns, so they are never mixed with old-scheme rows.
+- Checks: `python -m pytest tests -q` (`tests/test_numerical_scheme.py`).
+- Still open: the d₀ conditioning at low T (§3.3b of PR #10, item 4) is handled by refining the scan and running Brent on each bracket. The interior-point labelling of the 2+1 code (`physics/interior.py`) has not been ported.
+
 ### 3.4 HIGH: axial peak finding (Goal 1: not missing low-lying narrow peaks)
 
 - **The refined points are never used to locate a peak.**
@@ -277,6 +287,10 @@ with W(u_i) taken from the UV series. With ψ_m = (1−u)^c and c = −iωz_h/(2
 - Where the direct method is well conditioned, the two agree to all printed digits (T = 60 columns above).
 
 **What remains even after the fix.** At low T the resonances are exponentially narrow, about e^(−2φ(1)) wide. A scan on a 1 MeV grid with the exact formula at T = 17 MeV finds only 3 local maxima between 700 and 2400 MeV (1718, 2194 and 2328 MeV). The lower states are far too narrow for *any* real-ω grid to see.
+
+**Status (2026-11-12): fixed** in `axial_spectra.BA` and `vector_spectra.BA`. Im(B/A) now comes from the formula above, with W(u_i) from the UV series and W(u_f) from Abel's identity. Re(B/A) = (ψ₁′ψ₂′ + k²ψ₁ψ₂)/(ψ₁′² + k²ψ₁²) has no cancellation. Both solutions are integrated in one DOP853 pass at rtol 1e-10. Where the direct formula is well conditioned (T = 60 MeV), the two agree to 1e-5. At T = 17 MeV the result reproduces the "exact formula" column of the table above (tests).
+
+**A second bug found while testing (2026-11-12): parallel axial spectra used χ = 0.** `calculate_data` evaluates `BA` in joblib (loky) workers through a closure that set the module global `chi_interp`. That assignment does not reach the worker's own copy of `axial_spectra`, where `chi_interp` was `None`, so `Axial_eom` silently used `default_chi = 0`. Every spectrum produced through `calculate_data` (that is, `axial_spectra.main` and the temperature scans built on it) was therefore the **χ = 0 spectrum, which is the vector spectrum**. Direct calls to `BA`, such as those behind the table above, were not affected. Fixed: χ is passed explicitly to `BA`/`Axial_eom`, and a missing χ now raises. Existing axial spectra produced by `main()` should be treated as invalid.
 
 This is Goal 1 ("not missing a low-lying narrow peak") in its sharpest form. At low T, masses must come from a quasinormal-mode or eigenvalue search: the condition ψ₁(u → 1) → 0, or the T = 0 Schrödinger problem. Spectral-function scans are only meaningful once (μ_g z_h)² is small enough that the peaks have visible width.
 
