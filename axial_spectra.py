@@ -894,7 +894,8 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     wf = wf_value
     wcount = wcount_value
     wresolution = wresolution_value
-    settings = {'ui': ui_value, 'uf': uf_value, 'wi': wi, 'wf': wf, 'wcount': wcount, 'branch': branch}
+    settings = {'ui': ui_value, 'uf': uf_value, 'wi': wi, 'wf': wf, 'wcount': wcount, 'branch': branch,
+                'wresolution': wresolution_value, 'mq_tolerance': mq_tolerance_value}
 
     last_used_cache = False
     if load_if_exists:

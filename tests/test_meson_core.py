@@ -133,7 +133,7 @@ def test_rho_vs_legacy_vector(bg60):
     mug, zh, Q, _ = V.calculate_variables()
     ch = bg60.channel('vector')
     for w in (800.0, 1250.0, 1700.0, 2300.0):
-        leg = abs(V.BA(w, Q, zh, mug).imag)
+        leg = abs(V.BA_scipy(w, Q, zh, mug).imag)
         new = float(ch.rho(w))
         rel = abs(new - leg) / leg
         print(f"\n[4] vector omega={w}: legacy {leg:.6e} new {new:.6e} rel {rel:.2e}")

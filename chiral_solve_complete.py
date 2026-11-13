@@ -513,8 +513,8 @@ def chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3=v3, v4=v4):
     return res['mq'], res['chi'], res['chip'], u
 
 
-def _shoot_mq_sigma(d0, lambda1, T, mu, v3, v4):
-    res = chiral_shoot(d0, lambda1, T, mu, v3, v4)
+def _shoot_mq_sigma(d0, lambda1, T, mu, v3, v4, mu_g=MU_G):
+    res = chiral_shoot(d0, lambda1, T, mu, v3, v4, mu_g=mu_g)
     return res['mq'], res['sigma']
 
 
@@ -527,7 +527,7 @@ def chiral_scan(d0_array, lambda1, T, mu, v3=v3, v4=v4, n_jobs=-1, mu_g=MU_G):
     if len(d0_array) == 0:
         return np.array([]), np.array([])
     if SOLVER_SETTINGS['method'] != 'numba':
-        results = [_shoot_mq_sigma(d0, lambda1, T, mu, v3, v4) for d0 in d0_array]
+        results = [_shoot_mq_sigma(d0, lambda1, T, mu, v3, v4, mu_g) for d0 in d0_array]
         mq, sigma = zip(*results)
         return np.array(mq, dtype=float), np.array(sigma, dtype=float)
     b, Q2, _ = horizon_hat(T, mu, mu_g)

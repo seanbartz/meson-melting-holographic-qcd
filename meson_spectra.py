@@ -80,6 +80,14 @@ class Model:
                      mq=mq_scaled / np.sqrt(lam4), mu_g=mu_g)
 
 
+_trapezoid = getattr(np, 'trapezoid', None) or np.trapz
+
+
+def _free_energy_difference(sig, mq):
+    """-int sigma dm_q along a curve of solutions (dOmega/dm_q = -sigma)."""
+    return -_trapezoid(sig, mq)
+
+
 def chiral_branches(T, mu, model, d0_upper=None):
     """
     All solutions of the chiral equation with the model's quark mass: a list of dicts
@@ -106,7 +114,7 @@ def chiral_branches(T, mu, model, d0_upper=None):
         d = np.linspace(out[0]['d0'], out[i]['d0'], 2001)
         mq, sig = cs.chiral_scan(d, model.lam1, T, mu, model.lam3, model.lam4, mu_g=model.mu_g)
         if np.all(np.isfinite(mq)) and np.all(np.isfinite(sig)):
-            out[i]['dOmega'] = -np.trapz(sig, mq)
+            out[i]['dOmega'] = _free_energy_difference(sig, mq)
         else:
             out[i]['dOmega'] = np.nan
     return out
@@ -124,6 +132,8 @@ class Background:
         if d0 is not None:
             r = cs.chiral_shoot(d0, self.model.lam1, T, mu, self.model.lam3, self.model.lam4,
                                 mu_g=self.model.mu_g)
+            if not r['ok']:
+                raise RuntimeError(f"chiral shoot failed at T={T}, mu={mu}, d0={d0}")
             self.branches = [{'d0': float(d0), 'sigma': r['sigma'], 'dOmega': 0.0}]
         elif solve_chiral:
             self.branches = chiral_branches(T, mu, self.model)
@@ -150,6 +160,8 @@ class Background:
     def channel(self, kind='axial', branch='stable'):
         if kind == 'vector':
             return Channel(self, None)
+        if kind != 'axial':
+            raise ValueError(f"unknown channel {kind!r} (use 'vector' or 'axial')")
         return Channel(self, self.branches[self.pick(branch)])
 
 
@@ -212,11 +224,9 @@ class Channel:
         """|Im(B/A)| at real omega [MeV], in the normalization of axial_spectra.BA (psi_1 = u^2)."""
         w = self._w(omega)
         M = self.M(omega)
-        pf = np.ones(w.shape)
-        r = -1j * w / (2.0 * (2.0 - self.bg.Q2))
-        for k in range(1, SETTINGS['order'] + 1):
-            pf = pf * np.abs(1.0 + 2.0 * r / k)**2
-        return 2.0 * w.real * np.exp(-self.bg.b) * pf / np.abs(M)**2
+        out = np.array([mc.spectral_from_mode_function(wi, Mi, self.bg.b, self.bg.Q2, SETTINGS['order'])
+                        for wi, Mi in zip(w.ravel(), np.asarray(M).ravel())])
+        return out.reshape(w.shape)
 
     def rho_normalized(self, omega):
         """rho/(omega z_h)^2: dimensionless, tends to a constant (pi/2) at large omega for every T,
@@ -281,6 +291,8 @@ class Channel:
             if not (re[i] - spacing <= om.real <= re[i + 1] + spacing and
                     im[j] - spacing <= om.imag <= im[j + 1] + spacing):
                 continue
+            if not (re_min <= om.real <= re_max and im_min <= om.imag <= im_max):
+                continue        # the grid may overhang the requested rectangle by < one cell
             if all(abs(om - other) > merge * max(1.0, abs(om)) for other in modes):
                 modes.append(om)
         return sorted(modes, key=lambda z: z.real)
@@ -372,7 +384,7 @@ def stable_branch_index(d0s, T, mu, model):
         mq, sig = cs.chiral_scan(d, model.lam1, T, mu, model.lam3, model.lam4, mu_g=model.mu_g)
         if not (np.all(np.isfinite(mq)) and np.all(np.isfinite(sig))):
             raise RuntimeError("free-energy difference between branches is not available")
-        omega[order[j]] = -np.trapz(sig, mq)
+        omega[order[j]] = _free_energy_difference(sig, mq)
     return int(np.argmin(omega))
 
 

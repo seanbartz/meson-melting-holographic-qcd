@@ -51,6 +51,8 @@ def _branches(model, T, mu):
 
 def _stable_sigma(branches):
     om = [b['dOmega'] for b in branches]
+    if not np.all(np.isfinite(om)):
+        raise RuntimeError("free-energy difference between branches is not available")
     return branches[int(np.argmin(om))]['sigma']
 
 
@@ -86,7 +88,7 @@ def chiral_transition(model, mu=0.0, T_min=30.0, T_max=230.0, dT=2.0):
         # free energy of the broken (last) branch relative to the restored (first) one
         def gap(T):
             br = _branches(model, T, mu)
-            return br[-1]['dOmega'] if len(br) > 1 else None
+            return br[-1]['dOmega'] if len(br) > 1 else np.nan
 
         def bisect(T_a, T_b, test):
             # test(T) is True at T_a and False at T_b
@@ -101,6 +103,8 @@ def chiral_transition(model, mu=0.0, T_min=30.0, T_max=230.0, dT=2.0):
             return 0.5 * (T_a + T_b)
 
         g = np.array([fine_br[i][-1]['dOmega'] for i in idx])
+        if not np.all(np.isfinite(g)):
+            raise RuntimeError("free-energy difference between branches is not available on the fine grid")
         T_multi = fine[idx]
         T_lower = bisect(T_multi[0] - 0.1, T_multi[0], lambda T: len(_branches(model, T, mu)) < 2)
         T_upper = bisect(T_multi[-1], T_multi[-1] + 0.1, lambda T: len(_branches(model, T, mu)) > 1)
@@ -109,8 +113,9 @@ def chiral_transition(model, mu=0.0, T_min=30.0, T_max=230.0, dT=2.0):
         elif g[-1] <= 0.0:
             T_c = T_upper
         else:
-            k = int(np.nonzero(g > 0.0)[0][0])
-            T_c = bisect(T_multi[k - 1], T_multi[k], lambda T: gap(T) < 0.0)
+            positive = np.nonzero(g > 0.0)[0]
+            k = int(positive[0])
+            T_c = bisect(T_multi[k - 1], T_multi[k], lambda T: gap(T) < 0.0)   # NaN (branch lost): treated as not below
         br = _branches(model, T_c, mu)
         jump = np.cbrt(br[-1]['sigma']) - np.cbrt(br[0]['sigma']) if len(br) > 1 else np.nan
         out.update(order='first', T_chi=T_c, T_lower=T_lower, T_upper=T_upper, jump13=jump, slope=np.nan)
