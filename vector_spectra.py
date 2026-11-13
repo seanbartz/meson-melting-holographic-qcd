@@ -8,6 +8,7 @@ import pandas as pd
 import os
 import datetime
 import argparse
+import meson_core as mc
 
 # Global parameters
 mu = 0  # MeV, Chemical Potential
@@ -229,8 +230,42 @@ def BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf):
     return complex((psi1p*psi2p + k**2*psi1*psi2)/denom, k*W_uf/denom)
 
 
+_NO_CHI = np.zeros(2)
+
+
+def BA_array(ws, Q, zh, mug):
+    """
+    B/A for an array of frequencies with the compiled integrator (meson_core), threaded
+    over frequencies.  Same initial data (UV series vs) and same formula as ``BA_scipy``.
+    """
+    ws = np.atleast_1d(np.asarray(ws, dtype=float))
+    y0s = np.empty((len(ws), 4))
+    for i, w in enumerate(ws):
+        v_1, v_2 = vs(ui, w, zh, mug, Q)
+        y0s[i] = (v_1[0], v_1[1], v_2[0], v_2[1])
+    ys, status = mc.legacy_two_solutions_array(y0s, float(ui), float(uf), (ws*zh)**2, (mug*zh)**2, float(Q)**2, 0.0,
+                                               0.0, 1.0, _NO_CHI, _NO_CHI, SPECTRAL_RTOL, SPECTRAL_ATOL)
+    growth = wronskian_growth(ui, uf, zh, mug, Q)
+    out = np.empty(len(ws), dtype=complex)
+    for i, w in enumerate(ws):
+        if status[i] != 0 or not np.all(np.isfinite(ys[i])):
+            # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
+            raise RuntimeError(f"vector integration failed at w = {w} MeV (status {status[i]})")
+        W_ui = y0s[i, 0]*y0s[i, 3] - y0s[i, 2]*y0s[i, 1]
+        out[i] = BA_from_horizon_data(ys[i, 0], ys[i, 1], ys[i, 2], ys[i, 3], W_ui*growth, w, zh, Q, uf)
+        if not np.isfinite(out[i].real) or not np.isfinite(out[i].imag):
+            raise RuntimeError(f"vector spectral function not finite at w = {w} MeV: {out[i]}")
+    return out
+
+
 #Ratio of B and A
 def BA(w, Q, zh, mug):
+    """B/A at one frequency (compiled integrator)."""
+    return complex(BA_array([w], Q, zh, mug)[0])
+
+
+def BA_scipy(w, Q, zh, mug):
+    """The same with scipy's solve_ivp (reference path)."""
     v_1, v_2 = vs(ui, w, zh, mug, Q)
 
     def eom2(u, y):
@@ -242,7 +277,6 @@ def BA(w, Q, zh, mug):
                     method='DOP853', rtol=SPECTRAL_RTOL, atol=SPECTRAL_ATOL)
     psi1, psi1p, psi2, psi2p = sol.y[:, -1]
     if sol.status != 0 or not np.all(np.isfinite(sol.y[:, -1])):
-        # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
         raise RuntimeError(f"vector integration failed at w = {w} MeV: {sol.message}")
 
     W_ui = v_1[0]*v_2[1] - v_2[0]*v_1[1]
@@ -253,69 +287,37 @@ def BA(w, Q, zh, mug):
     return result
 
 #calculate the data set
-def calculate_data(wi, wf, wcount, wresolution, Q, zh, mug, expected_peaks=None):
-    
+def calculate_data(wi, wf, wcount, wresolution, Q, zh, mug, expected_peaks=None, rel_prominence=0.02):
+    """
+    Spectral function on a grid of wcount points in [wi, wf], and its peaks.  Same peak
+    criterion and refinement as axial_spectra.calculate_data: relative prominence of
+    |Im(B/A)|/omega^2, each peak located to wresolution by a bounded maximization, no
+    global refinement of the grid.  ``expected_peaks`` is ignored (old interface).
+    """
+    from meson_spectra import refine_peaks
     ws = np.linspace(wi, wf, wcount)
+    print(f'Frequency grid: {wcount} points, spacing {(wf - wi)/max(wcount - 1, 1):.4g} MeV')
+    BAs = BA_array(ws, Q, zh, mug)
 
-    currentresolution = np.abs((wf-wi))/wcount
-    print('Starting resolution ' + str(currentresolution))
+    extra_w, extra_BA = [], []
 
-    BAs = Parallel(n_jobs=-1)(delayed(BA)(w, Q, zh, mug) for w in ws)
+    def normalized(w):
+        ba = BA(w, Q, zh, mug)
+        extra_w.append(w)
+        extra_BA.append(ba)
+        return abs(ba.imag)/w**2
 
-    # If expected_peaks is not provided, calculate it based on zero temperature estimate
-    if expected_peaks is None:
-        expected_peaks = np.rint((wf/mug)**2/4)
-        print(f'Expected number of peaks at zero temperature: {expected_peaks}')
-    else:
-        print(f'Using provided expected peaks: {expected_peaks}')
-    
-    while True:
-        
-        # prepare spectrum for peak finding, normalized if requested
-        x_vals = (ws/mug)**2
-        if normalize_spectrum:
-            spec_for_peaks = np.abs(np.imag(BAs)) / x_vals
-        else:
-            spec_for_peaks = np.abs(np.imag(BAs))
-        peaks, _ = find_peaks(spec_for_peaks, prominence=0.01, distance=10)
-        if len(peaks) < expected_peaks and currentresolution > wresolution: 
-            midpoints = (ws[:-1] + ws[1:]) / 2.0
-            currentresolution = currentresolution / 2.0
-            print(f'Found {len(peaks)} peaks')
-            print(f'Resolution updated to {currentresolution}')
+    peaks = refine_peaks(ws, np.abs(np.imag(BAs))/ws**2, normalized, rel_prominence, tol=wresolution)
+    peakws = np.array([p['omega'] for p in peaks])
+    peakBAs = np.array([BA(w, Q, zh, mug) for w in peakws], dtype=complex)
+    print(f"Peaks found: {len(peakws)} at {[round(w, 2) for w in peakws]} MeV")
+    for p in peaks:
+        print(f"  omega = {p['omega']:.3f} MeV, (omega/mu_g)^2 = {(p['omega']/mug)**2:.3f}, FWHM = {p['fwhm']:.3f} MeV")
 
-            ws = np.insert(ws, np.arange(1, len(ws)), midpoints)
-            
-            newBAs = Parallel(n_jobs=-1)(delayed(BA)(w, Q, zh, mug) for w in midpoints)
-            
-            BAs = np.insert(BAs, np.arange(1, len(BAs)), newBAs)
-
-            if len(ws) % 2 == 1:
-                ws = np.append(ws, ws[-1] + currentresolution)
-                BAs = np.append(BAs, BA(ws[-1], Q, zh, mug))
-        else:
-            if currentresolution > wresolution:
-                for i in peaks:
-                    print(f'checking peak at w value {ws[i]}')
-                    print(f'Which is {(ws[i]/mug)**2} in dimensionless units')
-                
-                    wmax = ws[i] + (currentresolution)
-                    wmin = ws[i] - (currentresolution)
-                    count = int(np.ceil((wmax - wmin)/wresolution))
-                    wset = np.linspace(wmax, wmin, count)
-                    BAset = Parallel(n_jobs=-1)(delayed(BA)(w, Q, zh, mug) for w in wset)
-                    ws = np.append(ws, wset)
-                    BAs = np.append(BAs, BAset)
-            print("peaks found: " + str(len(peaks)))
-            
-            peakws = np.zeros(len(peaks))
-            peakBAs = np.zeros(len(peaks), dtype=complex)
-            for i in range(len(peaks)):
-                peakws[i] = ws[peaks[i]]
-                peakBAs[i] = BAs[peaks[i]]
-            break
-    
-    return (ws, BAs, peakws, peakBAs)
+    ws = np.concatenate([ws, extra_w, peakws])
+    BAs = np.concatenate([BAs, extra_BA, peakBAs])
+    ws, unique = np.unique(ws, return_index=True)
+    return (ws, BAs[unique], peakws, peakBAs)
 
 def plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, plot_file):
     # Prefix 'normalized_' to plot filename if normalization is requested
