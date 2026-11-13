@@ -51,6 +51,7 @@ from datetime import datetime
 import fcntl  # For file locking
 
 from chiral_uv_series_generated import uv_series, uv_log_coefficient
+import meson_core as mc
 
 # Constants from the paper
 v4 = 4.2
@@ -66,7 +67,7 @@ SOLVER_SETTINGS = {
     'horizon_order': 10,        # order of the Taylor series at the horizon
     'horizon_series_tol': 1e-13,  # allowed relative truncation error of that series
     'horizon_eps_max': 0.05,    # largest allowed 1 - u at the start of the integration
-    'method': 'DOP853',
+    'method': 'numba',          # compiled DOP853 (meson_core.dop853); 'DOP853' etc. = scipy solve_ivp (oracle)
     'rtol': 1e-11,
     'atol': 1e-16,
     'chi_blowup': 1e3,          # |chi| beyond this: the shoot has run away (no physical solution)
@@ -339,70 +340,15 @@ def chiral(u, y, b, Q2, lambda1, lam3, lam4):
 
 
 # ---------------------------------------------------------------------------
-# Horizon series: chi = sum_n d_n x^n, x = 1 - u
+# Horizon series: chi = sum_n d_n x^n, x = 1 - u   (compiled, meson_core.py)
 # ---------------------------------------------------------------------------
-_POLY_LEN = 12
-
-
-def _poly_mul(p, q):
-    out = np.zeros(_POLY_LEN)
-    for i in range(_POLY_LEN):
-        if p[i] != 0.0:
-            out[i:] += p[i] * q[:_POLY_LEN - i]
-    return out
-
-
-def _background_polynomials(b, Q2):
-    """
-    P(x) = u^2 g and R(x) = 3 u g + 2 b u^3 g + u^2 g_x with f = x g(x), as coefficient
-    arrays in x = 1 - u.  The EOM times u^2 f becomes x P chi_xx + (P + x R) chi_x - F = 0.
-    """
-    u1 = np.zeros(_POLY_LEN)
-    u1[0], u1[1] = 1.0, -1.0
-    u2 = _poly_mul(u1, u1)
-    u3 = _poly_mul(u2, u1)
-    binom4 = np.array([1.0, -4.0, 6.0, -4.0, 1.0])
-    binom6 = np.array([1.0, -6.0, 15.0, -20.0, 15.0, -6.0, 1.0])
-    f_x = np.zeros(_POLY_LEN)
-    f_x[0] = 1.0
-    f_x[:5] -= (1.0 + Q2) * binom4
-    f_x[:7] += Q2 * binom6
-    g = np.zeros(_POLY_LEN)
-    g[:-1] = f_x[1:]
-    g_x = np.zeros(_POLY_LEN)
-    g_x[:-1] = np.arange(1, _POLY_LEN) * g[1:]
-    P = _poly_mul(u2, g)
-    R = 3.0 * _poly_mul(u1, g) + 2.0 * b * _poly_mul(u3, g) + _poly_mul(u2, g_x)
-    return P, R
-
-
 def horizon_coefficients(d0, b, Q2, lambda1, lam3, lam4, order):
     """
     Taylor coefficients d_0..d_order of the regular solution at the horizon, by
     recursion (any order; no typed-in formulas).  d_1 and d_2 equal the closed forms
     used before (checked in tests/test_numerical_scheme.py).
     """
-    P, R = _background_polynomials(b, Q2)
-    M = np.zeros(_POLY_LEN)
-    M[0], M[1], M[2] = -3.0 - lambda1 * b, 2.0 * lambda1 * b, -lambda1 * b
-    d = np.zeros(order + 1)
-    d[0] = d0
-    sq = np.zeros(order + 1)
-    cube = np.zeros(order + 1)
-    for n in range(order):
-        sq[n] = np.dot(d[:n + 1], d[n::-1])
-        cube[n] = np.dot(sq[:n + 1], d[n::-1])
-        lin = sum(M[k] * d[n - k] for k in range(min(_POLY_LEN - 1, n) + 1))
-        force = lin + 3.0 * lam3 * sq[n] + 4.0 * lam4 * cube[n]
-        lower = 0.0
-        for k in range(1, min(_POLY_LEN - 1, n) + 1):
-            m = n + 1 - k
-            lower += P[k] * (m * (m - 1) + m) * d[m]
-        for k in range(0, min(_POLY_LEN - 1, n - 1) + 1):
-            m = n - k
-            lower += R[k] * m * d[m]
-        d[n + 1] = (force - lower) / (P[0] * (n + 1)**2)
-    return d
+    return mc.horizon_coefficients(float(d0), float(b), float(Q2), float(lambda1), float(lam3), float(lam4), int(order))
 
 
 def horizon_evaluate(d, eps):
@@ -416,10 +362,7 @@ def horizon_evaluate(d, eps):
 
 def choose_horizon_eps(d, tol, eps_max):
     """Largest eps <= eps_max with |d_N| eps^N <= tol |d_0|."""
-    order = d.size - 1
-    if d[0] == 0.0 or d[order] == 0.0:
-        return eps_max
-    return min(eps_max, (tol * abs(d[0]) / abs(d[order]))**(1.0 / order))
+    return mc.choose_horizon_eps(d, tol, eps_max)
 
 
 # ---------------------------------------------------------------------------
@@ -465,17 +408,50 @@ def condensate_in_scheme(sigma, mq, lambda1, v3_param=v3, v4_param=v4, scale_MeV
 # ---------------------------------------------------------------------------
 # One shoot
 # ---------------------------------------------------------------------------
+def _core_args(s):
+    return (float(s['z_uv']), int(s['horizon_order']), float(s['horizon_series_tol']),
+            float(s['horizon_eps_max']), float(s['rtol']), float(s['atol']), float(s['chi_blowup']))
+
+
 def chiral_shoot(d0, lambda1, T, mu, v3=v3, v4=v4, u_grid=None, settings=None, mu_g=MU_G):
     """
     Integrate from the horizon value d0 to the UV and extract (m_q, sigma).
 
-    Returns a dict with mq [MeV], sigma [MeV^3], a, c, ok, and, if ``u_grid`` is given,
-    chi and chip = dchi/du on that grid.  A failed or divergent shoot has ok = False and
-    mq = sigma = NaN (and NaN fields).
+    Returns a dict with mq [MeV], sigma [MeV^3], a, c, ok, and, if ``u_grid`` is given
+    (ascending), chi and chip = dchi/du on that grid.  A failed or divergent shoot has
+    ok = False and mq = sigma = NaN (and NaN fields).
+
+    settings['method'] = 'numba' (default) uses the compiled integrator of meson_core;
+    any scipy method name ('DOP853', ...) uses solve_ivp, kept as the oracle.
     """
     s = dict(SOLVER_SETTINGS)
     if settings:
         s.update(settings)
+    if s['method'] != 'numba':
+        return _chiral_shoot_scipy(d0, lambda1, T, mu, v3, v4, u_grid, s, mu_g)
+    b, Q2, zh_hat = horizon_hat(T, mu, mu_g)
+    a, c, status, eps = mc.chiral_shoot_core(float(d0), b, Q2, float(lambda1), float(v3), float(v4), *_core_args(s))
+    out = {'mq': np.nan, 'sigma': np.nan, 'a': np.nan, 'c': np.nan, 'ok': False,
+           'd0': float(d0), 'u_match': s['z_uv'] / zh_hat, 'horizon_eps': eps}
+    if u_grid is not None:
+        out['chi'] = np.full(len(u_grid), np.nan)
+        out['chip'] = np.full(len(u_grid), np.nan)
+    if status != 0:
+        return out
+    out.update(a=a, c=c, mq=a * mu_g / ZETA, sigma=ZETA * mu_g**3 * c, ok=True)
+    if u_grid is not None:
+        u_grid = np.ascontiguousarray(u_grid, dtype=float)
+        chi_g, chip_g, st = mc.chiral_on_grid(float(d0), b, Q2, float(lambda1), float(v3), float(v4),
+                                              u_grid, *_core_args(s)[1:])
+        if st == 0:
+            out['chi'], out['chip'] = chi_g, chip_g
+        else:
+            out['ok'] = False
+    return out
+
+
+def _chiral_shoot_scipy(d0, lambda1, T, mu, v3, v4, u_grid, s, mu_g):
+    """The same shoot with scipy's solve_ivp (reference implementation)."""
     b, Q2, zh_hat = horizon_hat(T, mu, mu_g)
     k4 = (1.0 + Q2) / zh_hat**4
 
@@ -537,22 +513,26 @@ def chiral_solve_IR(d0, lambda1, T, mu, ui, uf, v3=v3, v4=v4):
     return res['mq'], res['chi'], res['chip'], u
 
 
-def _shoot_mq_sigma(d0, lambda1, T, mu, v3, v4):
-    res = chiral_shoot(d0, lambda1, T, mu, v3, v4)
+def _shoot_mq_sigma(d0, lambda1, T, mu, v3, v4, mu_g=MU_G):
+    res = chiral_shoot(d0, lambda1, T, mu, v3, v4, mu_g=mu_g)
     return res['mq'], res['sigma']
 
 
-def chiral_scan(d0_array, lambda1, T, mu, v3=v3, v4=v4, n_jobs=-1):
-    """(mq, sigma) arrays along d0_array (NaN where the shoot fails)."""
+def chiral_scan(d0_array, lambda1, T, mu, v3=v3, v4=v4, n_jobs=-1, mu_g=MU_G):
+    """
+    (mq, sigma) arrays along d0_array (NaN where the shoot fails).  The loop is compiled
+    (about 30 microseconds per shoot); n_jobs is kept for the old signature.
+    """
+    d0_array = np.ascontiguousarray(d0_array, dtype=float)
     if len(d0_array) == 0:
         return np.array([]), np.array([])
-    if n_jobs == 1 or len(d0_array) < 8:
-        results = [_shoot_mq_sigma(d0, lambda1, T, mu, v3, v4) for d0 in d0_array]
-    else:
-        results = Parallel(n_jobs=n_jobs)(
-            delayed(_shoot_mq_sigma)(d0, lambda1, T, mu, v3, v4) for d0 in d0_array)
-    mq, sigma = zip(*results)
-    return np.array(mq, dtype=float), np.array(sigma, dtype=float)
+    if SOLVER_SETTINGS['method'] != 'numba':
+        results = [_shoot_mq_sigma(d0, lambda1, T, mu, v3, v4, mu_g) for d0 in d0_array]
+        mq, sigma = zip(*results)
+        return np.array(mq, dtype=float), np.array(sigma, dtype=float)
+    b, Q2, _ = horizon_hat(T, mu, mu_g)
+    a, c = mc.chiral_scan_core(d0_array, b, Q2, float(lambda1), float(v3), float(v4), *_core_args(SOLVER_SETTINGS))
+    return a * mu_g / ZETA, ZETA * mu_g**3 * c
 
 
 def chiral_solve_IR_parallel(d0_array, lambda1, T, mu, ui, uf, v3=v3, v4=v4, n_jobs=-1):
@@ -594,7 +574,10 @@ def initial_d0_mq(T, mu, mq_target, lambda1, ui, uf, d0_array, v3=v3, v4=v4):
     iterations = 0
     while mq_array[-1] < mq_target and iterations < 20:
         step_size = step_size / 100
-        d0_new = np.arange(d0_array[-1] + step_size, max_d0, step_size)[:200]
+        # at most 200 new points (built without allocating the whole range up to max_d0,
+        # which has ~100^iterations points)
+        d0_new = d0_array[-1] + step_size * np.arange(1, 201)
+        d0_new = d0_new[d0_new < max_d0]
         if len(d0_new) == 0:
             break
         mq_new, _ = chiral_scan(d0_new, lambda1, T, mu, v3, v4)

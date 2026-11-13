@@ -774,6 +774,60 @@ A copy of the small cluster files (phase and axial CSVs, summaries, `vector_melt
 
 ---
 
+## 9. Compiled solvers, quasinormal modes, and the restoration analysis *(added 2026-11-12)*
+
+**Code.** `meson_core.py` holds the compiled (numba) kernels: scipy's DOP853 step, the chiral shoot, and the meson equation. `meson_spectra.py` builds on it (`Model`, `Background`, `Channel`). `restoration_analysis.py` and `scripts/run_restoration_scan.py`, `scripts/plot_restoration.py` are the analysis. `chiral_solve_complete.py`, `axial_spectra.py` and `vector_spectra.py` now call the compiled kernels; scipy stays as the reference path (`SOLVER_SETTINGS['method'] = 'DOP853'`, `BA` with a plain callable, `BA_scipy`). `vector_eigenvalue_solver.py` (T = 0 check) is still scipy.
+
+- *Speed.* One chiral shoot: 0.03 ms against 10 ms with scipy (agreement 1e-11). A 2301-point axial spectrum with refined peaks: 2 s in total.
+- *One analytic function for both jobs.* M(ω) = W[ψ₁, ψ_in] f e^{−φ}/u does not depend on u. Its zeros are the quasinormal modes, and |Im(B/A)| = 2 ω z_h e^{−b}/|M|² on the real axis. The horizon condition is a 10th-order Frobenius series instead of leading order. `Channel.scan_modes` counts the zeros in every cell of a grid in the complex plane (argument principle) and polishes them with Newton's method.
+- *Spectra finder (§3.4).* Peaks are located by a bounded maximization between grid neighbours (no global halving, positions no longer tied to the coarse grid), with one relative-prominence criterion on |Im(B/A)|/ω² for both channels. Each peak gets a FWHM. Peaks within 10 MeV are no longer merged. `axial_spectra.py` takes `-gamma`, `-lambda4` and `--branch`; file names and the cache carry γ, λ₄, the window and the cutoffs.
+- *Branch choice (§3.1).* `chiral_branches` returns the free-energy difference of the solutions from the equal-area construction on σ(m_q). The default branch is now the stable one, and first-order T_c is defined by ΔΩ = 0.
+- *Bug fixed.* `initial_d0_mq` built `np.arange(...)[:200]` over a range that grows like 100^iteration and could exhaust memory.
+- *Checks.* `tests/test_meson_core.py` (written independently of the code): compiled against scipy, M against a separate scipy integration, M independent of the matching point, mode scans at two grid spacings, node counting, and the χ → χ/s symmetry.
+
+**Normal modes: one axial state was missing.** At T → 0 (μ_g = 440, reference parameters) the modes are
+
+| | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| vector (T = 10) | 879.9 | 1243.9 | 1522.4 | 1756.1 | 1960.6 |
+| 2 μ_g √n | 880.0 | 1244.5 | 1524.2 | 1760.0 | 1967.7 |
+| axial (T = 10) | 1717.1 | 2197.1 | 2341.6 | 2488.4 | |
+| axial (T = 17) | 1717.0 | 2193.8 | 2327.3 | 2452.4 | 2548.2 |
+
+- The earlier axial list (1513, 2052, 2157, 2245 MeV at μ_g = 388; that is 1716, 2327, 2446, 2546 at 440) is the T = 17 row **without the second state at 2194 MeV**. Its width at T = 17 is 2 × 10⁻⁸ MeV, so no real-ω grid could show it.
+- Node counting agrees: ψ₁ has k nodes just above the k-th mode, and 4 nodes at 2600 MeV where 4 modes lie below. Nothing else is missing below 2600 MeV, and there is no axial mode below 1717 MeV (the 741–1166 MeV structures were round-off).
+- The large gap between the first and second axial state is real: the ground state sits in the pocket of the potential at small z, the others in the outer well raised by g₅²χ²/z².
+
+**Restoration and melting at the reference point** (m_q = 9, λ₁ = 7.438, γ = −22.6, λ₄ = 4.2, μ = 0).
+- First-order transition at T_c = 141.82 MeV (ΔΩ = 0).
+- Melting is gradual. Γ/M of the ρ mode is 0.25 at 60 MeV, 0.52 at 80, 0.75 at 100 and 1.0 at 130. The potential-well criterion (102.8 MeV) corresponds to Γ/M = 0.77. The bump in ρ/ω² never disappears; its prominence falls from 0.40 (60 MeV) to 0.10 (100 MeV).
+- The a₁ is far more robust than the ρ: Γ/M = 0.07 at 100 MeV and 0.53 just below T_c.
+- At T_c the a₁ jumps from 1357 − 357i to 1095 − 590i MeV, which is the ρ mode to 1%. Above T_c the two agree to better than 1%. So restoration **is** seen directly in the spectrum, as a discontinuity, but the ρ is already broad there (Γ/M = 1.10).
+
+**Parameter scan** (`results/restoration_scan_*.csv`). The chiral sector depends only on λ₁, γ²/λ₄ and m_q√λ₄ (χ → χ/s, λ₃ → sλ₃, λ₄ → s²λ₄), so the scan is in those; λ₄ alone only rescales g₅²χ².
+- *λ₁ sets T_χ.* Over λ₁ = 5.2–7.438, γ = −18 to −26 and m_q = 3–15 (at λ₄ = 4.2), T_χ = 89–152 MeV and Γ_V/M_V at T_χ = 0.60–1.17. Below λ₁ ≈ 5 there is no spontaneous breaking (m_q(d₀) is monotonic). So T_χ cannot be pushed much below 90 MeV, and the ρ always has Γ/M ≳ 0.6 at restoration. T_χ < 102.8 MeV needs λ₁ ≲ 5.5.
+- *The a₁ is always narrower than the ρ at T_χ* (Γ_A/M_A = 0.29–0.67 at λ₄ = 4.2), and the two modes agree within 5% from T_χ (first order) or within 3 MeV above it (crossover).
+- *λ₄ is the useful lever.* At fixed (λ₁, γ²/λ₄, m_q√λ₄), T_χ does not move (checked: 103.149 MeV at λ₄ = 0.5, 2, 4.2), but the a₁ gets heavier and sharper as λ₄ falls. Just below T_χ:
+
+  | λ₁ | T_χ | Γ_V/M_V | λ₄ = 16 | 4.2 | 1 | 0.5 |
+  |---|---|---|---|---|---|---|
+  | 5.2 | 94.9 | 0.66 | split 0.03, Γ_A/M_A 0.56 | 0.10, 0.37 | 0.35, 0.10 | 0.55, 0.02 |
+  | 5.5 | 103.1 | 0.75 | 0.04, 0.61 | 0.15, 0.38 | 0.46, 0.08 | 0.70, 0.01 |
+  | 7.438 | 141.8 | 1.10 | 0.08, 0.86 | 0.25, 0.53 | 0.66, 0.14 | 0.97, 0.03 |
+
+  ("split" = (M_A − M_V)/M_V.) With λ₄ ≲ 1 a sharp a₁ survives up to T_χ and then collapses onto the broad ρ.
+- *Finite μ makes it worse.* At λ₁ = 5.5, Γ_V/M_V at T_χ grows from 0.75 (μ = 0) to 0.81, 1.00 and 1.25 at μ = 100, 200, 300 MeV.
+
+**Answer to Goals 9–10.** Not "degenerate narrow a₁ and ρ below melting": the ρ is never narrow at T_χ. What the model does give is restoration visible in the axial channel before the a₁ melts, most cleanly at small λ₄.
+
+**Caveats.**
+- Four scan rows with m_q = 3 and λ₁ ≤ 5.4 are unreliable (mode identification fails, or a transition is reported at 35 MeV); they are excluded from the ranges above.
+- At λ₁ ≈ 5 the condensate *rises* with T up to about 80 MeV before it drops. This is a property of the equations, not of the solver (m_q(d₀) was checked directly).
+- The crossover T_χ is the steepest drop of σ(T); other definitions shift it by a few MeV.
+- The cluster phase diagrams (§8) have not been recomputed with the new solver.
+
+---
+
 ## Appendix B: numba and Wronskian tests (2026-10-19)
 
 All tests ran in scratch space, outside the repository. They imported `axial_spectra` and `chiral_solve_complete` unchanged.

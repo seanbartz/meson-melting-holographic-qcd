@@ -7,12 +7,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-from scipy.signal import find_peaks
-from joblib import Parallel, delayed
-from scipy.interpolate import interp1d
-import glob
-import datetime
 from chiral_solve_complete import calculate_sigma_values, SOLVER_SCHEME
+import meson_core as mc
 
 # Global parameters (defaults that can be overridden)
 # mu = 0  # MeV, Chemical Potential
@@ -87,15 +83,20 @@ def z_h(T_value=None, mu_value=None):
     
     return ((-T_val * np.pi * (kappa**2)) + ((kappa**2) * np.sqrt((T_val**2 * np.pi**2) + (2 * mu_val**2 / kappa**2)))) / mu_val**2   
 
-#Values of lambda 1-4
-def lam_function(lambda1_value=7.438):
-    return (lambda1_value, -22.6/(6*(2**(1/2))), 4.2)
+# Reference values of the chiral potential (the earlier paper): gamma = -22.6, lambda4 = 4.2
+GAMMA_DEFAULT = -22.6
+LAMBDA4_DEFAULT = 4.2
 
-def calculate_variables(lambda1_value=7.438, T_value=None, mu_value=None):
+#Values of lambda 1, 3, 4.  lambda3 = gamma/(6 sqrt 2)
+def lam_function(lambda1_value=7.438, gamma_value=GAMMA_DEFAULT, lambda4_value=LAMBDA4_DEFAULT):
+    return (lambda1_value, gamma_value/(6*(2**(1/2))), lambda4_value)
+
+def calculate_variables(lambda1_value=7.438, T_value=None, mu_value=None,
+                        gamma_value=GAMMA_DEFAULT, lambda4_value=LAMBDA4_DEFAULT):
     mug = mu_g()
     zh = z_h(T_value, mu_value)
     Q = Q_func(zh, mu_value)
-    lambda1, lambda3, lambda4 = lam_function(lambda1_value)
+    lambda1, lambda3, lambda4 = lam_function(lambda1_value, gamma_value, lambda4_value)
     g5 = 2*np.pi
     zeta = np.sqrt(3)/(2*np.pi)
     return (mug, zh, Q, lambda1, lambda3, lambda4, g5, zeta)
@@ -421,7 +422,7 @@ def psi_m(u, w, zh, Q):
 # Version tag of the spectral solver, stored in the params file of every cached spectrum.
 # Caches without it (or with another tag) predate the exact-Wronskian formula and the fix
 # of chi = 0 in the parallel workers, and are never loaded.
-SPECTRAL_SOLVER_VERSION = 'wronskian_chi_explicit_v1'
+SPECTRAL_SOLVER_VERSION = 'numba_refined_peaks_v2'
 
 # Tolerances of the spectral integration (was LSODA at rtol 1e-8 with two separate solves)
 SPECTRAL_RTOL = 1e-10
@@ -457,8 +458,56 @@ def BA_from_horizon_data(psi1, psi1p, psi2, psi2p, W_uf, w, zh, Q, uf):
     return complex((psi1p*psi2p + k**2*psi1*psi2)/denom, k*W_uf/denom)
 
 
+class ChiGrid:
+    """chi and dchi/du on a uniform u grid, for the compiled integrator (cubic Hermite)."""
+    def __init__(self, u, chi, chip):
+        self.u0 = float(u[0])
+        self.du = float(u[1] - u[0])
+        self.chi = np.ascontiguousarray(chi, dtype=float)
+        self.chip = np.ascontiguousarray(chip, dtype=float)
+
+    def __call__(self, u):
+        return mc.hermite(float(u), self.u0, self.du, self.chi, self.chip)
+
+
+def BA_array(ws, ui, uf, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_grid):
+    """
+    B/A for an array of frequencies with the compiled integrator (meson_core), threaded
+    over frequencies.  Same initial data (UV series a_s) and same formula as ``BA``.
+    """
+    ws = np.atleast_1d(np.asarray(ws, dtype=float))
+    y0s = np.empty((len(ws), 4))
+    for i, w in enumerate(ws):
+        a_1, a_2 = a_s(ui, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
+        y0s[i] = (a_1[0], a_1[1], a_2[0], a_2[1])
+    b = (mug*zh)**2
+    ys, status = mc.legacy_two_solutions_array(y0s, float(ui), float(uf), (ws*zh)**2, b, float(Q)**2, float(g5)**2,
+                                               chi_grid.u0, chi_grid.du, chi_grid.chi, chi_grid.chip,
+                                               SPECTRAL_RTOL, SPECTRAL_ATOL)
+    growth = wronskian_growth(ui, uf, zh, mug, Q)
+    out = np.empty(len(ws), dtype=complex)
+    for i, w in enumerate(ws):
+        if status[i] != 0 or not np.all(np.isfinite(ys[i])):
+            # Raise rather than return NaN: a NaN point would reach peak finding and the saved CSV
+            raise RuntimeError(f"axial integration failed at w = {w} MeV (status {status[i]})")
+        W_ui = y0s[i, 0]*y0s[i, 3] - y0s[i, 2]*y0s[i, 1]
+        out[i] = BA_from_horizon_data(ys[i, 0], ys[i, 1], ys[i, 2], ys[i, 3], W_ui*growth, w, zh, Q, uf)
+        if not np.isfinite(out[i].real) or not np.isfinite(out[i].imag):
+            raise RuntimeError(f"axial spectral function not finite at w = {w} MeV: {out[i]}")
+    return out
+
+
 #Ratio of B and A
 def BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_func=None):
+    """
+    B/A at one frequency.  With a ``ChiGrid`` (what initialize_chiral_field stores) the
+    compiled integrator is used; with any other callable chi(u), scipy's solve_ivp (the
+    reference path, ~100 times slower).
+    """
+    chi = chi_func if chi_func is not None else chi_interp
+    if isinstance(chi, ChiGrid):
+        return complex(BA_array([w], ui, uf, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi)[0])
+
     a_1, a_2 = a_s(ui, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
 
     def eom2(u, y):
@@ -481,44 +530,52 @@ def BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, ch
         raise RuntimeError(f"axial spectral function not finite at w = {w} MeV: {result}")
     return result
 
-def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value):
-    global chi_interp
+def initialize_chiral_field(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value,
+                            gamma_value=GAMMA_DEFAULT, lambda4_value=LAMBDA4_DEFAULT, branch='stable'):
+    """
+    Solve the chiral field and store it (module global chi_interp, a ChiGrid).
 
-    result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value)
+    branch: which solution to use when there are several (first-order region):
+    'stable' = lowest free energy (equal-area construction on sigma(m_q)), 'broken' =
+    largest sigma, 'restored' = smallest sigma.  The old code always took the smallest
+    positive sigma, i.e. the restored branch even where it is metastable.
+    Returns the selected sigma.
+    """
+    global chi_interp, last_branch_info
+    import meson_spectra as ms
+
+    v3 = gamma_value/(6*np.sqrt(2))
+    result = calculate_sigma_values(mq_value, mq_tolerance_value, T_value, mu_value, lambda1_value, ui_value, uf_value,
+                                    v3=v3, v4=lambda4_value)
     sigma_values = result["sigma_values"]
     if len(sigma_values) == 0:
         # Never fall back to a made-up chi: that used to produce saved garbage spectra
         raise RuntimeError(f"No chiral solution for mq={mq_value}, T={T_value}, mu={mu_value}, "
                            f"lambda1={lambda1_value}; refusing to compute a spectrum")
-    chiral_fields = result["chiral_fields"]
     u_values = result["u_values"]
-    
-    # Always print all sigma solutions and their cube roots
+
     print(f"Sigma solutions found: {sigma_values}")
-    cube_roots = [s**(1/3) if s >= 0 else -((-s)**(1/3)) for s in sigma_values]
-    print(f"Cube roots of sigma: {[f'{cr:.1f}' for cr in cube_roots]}")
-    
-    # If multiple sigma values, use the smallest positive and print a message
-    if len(sigma_values) > 1:
-        positive_sigmas = [s for s in sigma_values if s > 0]
-        if positive_sigmas:
-            min_index = np.argmin(positive_sigmas)
-            selected_sigma = positive_sigmas[min_index]
-            # Find the index in the original sigma_values array
-            orig_index = np.where(sigma_values == selected_sigma)[0][0]
-            print(f"Using the smallest positive: {selected_sigma}")
-        else:
-            # Fallback: use the smallest by absolute value
-            min_index = np.argmin(np.abs(sigma_values))
-            selected_sigma = sigma_values[min_index]
-            print(f"No positive sigma found, using the smallest by absolute value: {selected_sigma}")
-            orig_index = min_index
+    print(f"Cube roots of sigma: {[f'{np.cbrt(s):.1f}' for s in sigma_values]}")
+
+    if len(sigma_values) == 1:
+        index = 0
+    elif branch == 'broken':
+        index = int(np.argmax(sigma_values))
+    elif branch == 'restored':
+        index = int(np.argmin(sigma_values))
+    elif branch == 'stable':
+        model = ms.Model(lam1=lambda1_value, gamma=gamma_value, lam4=lambda4_value, mq=mq_value, mu_g=mu_g())
+        index = ms.stable_branch_index(result["d0_values"], T_value, mu_value, model)
     else:
-        orig_index = 0
-        selected_sigma = sigma_values[0]
-        print(f"Using sigma: {selected_sigma}")
-    chi_interp = interp1d(u_values, chiral_fields[orig_index], bounds_error=False, fill_value="extrapolate")
+        raise ValueError(f"unknown branch {branch!r}")
+    selected_sigma = sigma_values[index]
+    if len(sigma_values) > 1:
+        print(f"{len(sigma_values)} solutions; using the {branch} branch: sigma = {selected_sigma}")
+    last_branch_info = {'branch': branch, 'n_solutions': len(sigma_values), 'd0': float(result["d0_values"][index])}
+    chi_interp = ChiGrid(u_values, result["chiral_fields"][index], result["chiral_derivatives"][index])
     return selected_sigma  # Return the selected sigma value
+
+last_branch_info = {}
 
 def clean_peaks(peakws, peakBAs, min_separation=10.0):
     """
@@ -577,118 +634,54 @@ def clean_peaks(peakws, peakBAs, min_separation=10.0):
     
     return cleaned_peakws, cleaned_peakBAs
 
-def calculate_data(wi, wf, wcount, wresolution, ui, uf, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, expected_peaks=None):
-    ws = np.linspace(wi, wf, wcount)
-    # Determine normalization for peak finding
-    normalize = globals().get('normalize_spectrum', False)
-    # Precompute scaling for normalization
-    x_vals = (ws/mug)**2
-    currentresolution = np.abs((wf-wi))/wcount
-    print(f'Starting resolution {currentresolution}')
+def calculate_data(wi, wf, wcount, wresolution, ui, uf, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4,
+                   expected_peaks=None, rel_prominence=0.02):
+    """
+    Spectral function on a grid of wcount points in [wi, wf], and its peaks.
 
-    # Ensure chi_interp is available for parallel workers
+    Peak finding (PROJECT_ASSESSMENT.md section 3.4):
+    * peaks are those of |Im(B/A)|/omega^2 with prominence >= rel_prominence times the
+      height: one relative criterion for both channels and every temperature;
+    * each peak is located by a bounded maximization between its grid neighbours, to
+      wresolution, and the points evaluated there are added to the returned arrays;
+      the grid is never refined globally;
+    * peaks closer than 10 MeV are no longer merged (near-degenerate peaks are physics).
+    ``expected_peaks`` is accepted for the old interface and ignored.
+    Returns (ws, BAs, peakws, peakBAs), sorted by frequency.
+    """
+    from meson_spectra import refine_peaks
     global chi_interp
     if chi_interp is None:
         raise RuntimeError("chi_interp not initialized: call initialize_chiral_field first")
-    
-    # Make a local copy of chi_interp for parallel processing
-    local_chi_interp = chi_interp
-    
-    # BA with the chiral field passed explicitly (setting the module global inside a
-    # pickled closure does not reach the copy of this module in a joblib worker)
-    def BA_with_chi(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_interp_func):
-        return BA(ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, chi_func=chi_interp_func)
+    chi = chi_interp
+    args = (ui, uf, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4)
 
-    # Pass the chi_interp function to each parallel task
-    BAs = Parallel(n_jobs=-1)(
-        delayed(BA_with_chi)(
-            ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, local_chi_interp
-        ) for w in ws
-    )
-
-    # Determine expected peak count
-    if expected_peaks is not None:
-        # Use provided expected peak count
-        expectedPeaks = expected_peaks
-        print(f"Using provided expected peak count: {expectedPeaks}")
+    ws = np.linspace(wi, wf, wcount)
+    print(f'Frequency grid: {wcount} points, spacing {(wf - wi)/max(wcount - 1, 1):.4g} MeV')
+    if isinstance(chi, ChiGrid):
+        BAs = BA_array(ws, *args, chi)
     else:
-        # Try to find matching vector peaks file for expected peak count
-        vector_peaks_file_pattern = f'data/peaks_data_T{T:.1f}_mu{mu:.1f}*.csv'
-        vector_peaks_files = glob.glob(vector_peaks_file_pattern)
-        if vector_peaks_files:
-            most_recent_peaks_file = max(vector_peaks_files, key=os.path.getmtime)
-            print(f"Loading vector peaks data from: {most_recent_peaks_file}")
-            
-            # Load the peaks data
-            vector_peaks_data = pd.read_csv(most_recent_peaks_file)
-            vector_peakws = vector_peaks_data.iloc[:, 0].values
-            expectedPeaks = len(vector_peakws)
-            print(f"Expected peaks count from vector data: {expectedPeaks}")
-        else:
-            expectedPeaks = int((wf/mug)**2/4)  # Approximate expected peaks
-            print(f"No vector peaks data found. Using default expected peaks count: {expectedPeaks}")
+        BAs = np.array([BA(ui, uf, w, *args[2:], chi_func=chi) for w in ws])
 
-    while True:
-        # Prepare data array for peak finding, normalized if requested
-        if normalize:
-            spec_for_peaks = np.abs(np.imag(BAs)) / x_vals
-        else:
-            spec_for_peaks = np.abs(np.imag(BAs))
-        # Lower prominence threshold to detect more peaks
-        # Allow peaks to be closer together for improved detection
-        peaks, _ = find_peaks(spec_for_peaks, prominence=0.1, distance=10)
-        
-        if len(peaks) < expectedPeaks and currentresolution > wresolution: 
-            midpoints = (ws[:-1] + ws[1:]) / 2.0
-            currentresolution = currentresolution / 2.0
-            # Progress message: print new resolution and, if not first, count and locations of peaks
-            print(f"[Progress] Omega resolution updated to {currentresolution:.6f}")
-            if len(peaks) > 0:
-                print(f"[Progress] {len(peaks)} peaks found at omega values: {[round(ws[p], 2) for p in peaks]}")
-            ws = np.insert(ws, np.arange(1, len(ws)), midpoints)
-            newBAs = Parallel(n_jobs=-1)(
-                delayed(BA_with_chi)(
-                    ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, local_chi_interp
-                ) for w in midpoints
-            )
-            BAs = np.insert(BAs, np.arange(1, len(BAs)), newBAs)
-            if len(ws) % 2 == 1:
-                ws = np.append(ws, ws[-1] + currentresolution)
-                BAs = np.append(BAs, BA_with_chi(ui, uf, ws[-1], g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, local_chi_interp))
-        else:
-            if currentresolution > wresolution:
-                for i in peaks:
-                    print(f'Checking peak at w value {ws[i]:.2f}')
-                    print(f'Which is {(ws[i]/mug)**2:.2f} in dimensionless units')
-                    
-                    wmax = ws[i] + currentresolution
-                    wmin = ws[i] - currentresolution
-                    count = int(np.ceil((wmax - wmin)/wresolution))
-                    wset = np.linspace(wmax, wmin, count)
-                    BAset = Parallel(n_jobs=-1)(
-                        delayed(BA_with_chi)(
-                            ui, uf, w, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, local_chi_interp
-                        ) for w in wset
-                    )
-                    ws = np.append(ws, wset)
-                    BAs = np.append(BAs, BAset)
-                    
-            print(f"Peaks found: {len(peaks)}")
-            
-            peakws = np.zeros(len(peaks))
-            peakBAs = np.zeros(len(peaks), dtype=complex)
-            for i in range(len(peaks)):
-                peakws[i] = ws[peaks[i]]
-                peakBAs[i] = BAs[peaks[i]]
-            
-            # Clean the peaks to remove closely spaced duplicates
-            peakws, peakBAs = clean_peaks(peakws, peakBAs, min_separation=10.0)
-            print(f"Peaks after cleaning: {len(peakws)}")
-            
-            break
-    
-    # After refining, return peaks based on normalized or raw spectral data
-    return (ws, BAs, peakws, peakBAs)
+    extra_w, extra_BA = [], []
+
+    def normalized(w):
+        ba = BA(ui, uf, w, *args[2:], chi_func=chi)
+        extra_w.append(w)
+        extra_BA.append(ba)
+        return abs(ba.imag)/w**2
+
+    peaks = refine_peaks(ws, np.abs(np.imag(BAs))/ws**2, normalized, rel_prominence, tol=wresolution)
+    peakws = np.array([p['omega'] for p in peaks])
+    peakBAs = np.array([BA(ui, uf, w, *args[2:], chi_func=chi) for w in peakws], dtype=complex)
+    print(f"Peaks found: {len(peakws)} at {[round(w, 2) for w in peakws]} MeV")
+    for p in peaks:
+        print(f"  omega = {p['omega']:.3f} MeV, (omega/mu_g)^2 = {(p['omega']/mug)**2:.3f}, FWHM = {p['fwhm']:.3f} MeV")
+
+    ws = np.concatenate([ws, extra_w, peakws])
+    BAs = np.concatenate([BAs, extra_BA, peakBAs])
+    ws, unique = np.unique(ws, return_index=True)
+    return (ws, BAs[unique], peakws, peakBAs)
 
 def plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot=True, lambda1=None):
     """
@@ -752,7 +745,7 @@ def plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot=True, lambd
     # Always save the plot, regardless of show_plot value
     # Create subdirectory named by lambda1, mq, and mu
     subdir = f"l1_{lambda1:.1f}_mq_{mq:.1f}_mu_{mu:.1f}" if lambda1 is not None else "default"
-    plot_dir = os.path.join('mu_g_440', 'axial_plots', subdir)
+    plot_dir = os.path.join(f'mu_g_{mu_g():g}', 'axial_plots', subdir)
     os.makedirs(plot_dir, exist_ok=True)
     
     # Save the plot to a standardized filename without timestamp
@@ -771,40 +764,28 @@ def plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot=True, lambd
         plt.close()  # Close the figure to free memory
 
 def _format_param(value):
-    """Format parameter with consistent decimal places for file naming."""
-    if value == int(value):
-        return f"{value:.1f}"
-    return f"{value:.1f}"
+    """Parameter in a file name: up to 6 significant digits, so 7.438 and 7.4 do not collide."""
+    text = f"{float(value):.6g}"
+    return text if ('.' in text or 'e' in text) else text + ".0"
 
-def _spectral_data_paths(T, mu, mq, lambda1):
+def _spectral_data_paths(T, mu, mq, lambda1, gamma=GAMMA_DEFAULT, lambda4=LAMBDA4_DEFAULT):
     """Return standardized filenames for spectral, peaks, and params data."""
-    data_dir = os.path.join('mu_g_440', 'axial_data')
-    t_str = _format_param(T)
-    mu_str = _format_param(mu)
-    mq_str = _format_param(mq)
-    lambda1_str = _format_param(lambda1)
-    spectral_filename = os.path.join(
-        data_dir,
-        f"axial_spectral_data_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
-    )
-    peaks_filename = os.path.join(
-        data_dir,
-        f"axial_peaks_data_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
-    )
-    params_filename = os.path.join(
-        data_dir,
-        f"axial_params_T_{t_str}_mu_{mu_str}_mq_{mq_str}_lambda1_{lambda1_str}.csv"
-    )
+    data_dir = os.path.join(f'mu_g_{mu_g():g}', 'axial_data')
+    tag = (f"T_{_format_param(T)}_mu_{_format_param(mu)}_mq_{_format_param(mq)}_lambda1_{_format_param(lambda1)}"
+           f"_gamma_{_format_param(gamma)}_lambda4_{_format_param(lambda4)}")
+    spectral_filename = os.path.join(data_dir, f"axial_spectral_data_{tag}.csv")
+    peaks_filename = os.path.join(data_dir, f"axial_peaks_data_{tag}.csv")
+    params_filename = os.path.join(data_dir, f"axial_params_{tag}.csv")
     return data_dir, spectral_filename, peaks_filename, params_filename
 
-def load_cached_data(T, mu, mq, lambda1):
+def load_cached_data(T, mu, mq, lambda1, gamma=GAMMA_DEFAULT, lambda4=LAMBDA4_DEFAULT, settings=None):
     """
-    Load cached spectral data if all required files exist and were written by the current
-    spectral solver (SPECTRAL_SOLVER_VERSION and chiral SOLVER_SCHEME in the params file).
-    Older caches, including every legacy-named file, were computed with chi = 0 in the
-    parallel path and are skipped.  Returns (ws, BAs, peakws, peakBAs, mug, sigma) or None.
+    Load cached spectral data if all required files exist, were written by the current
+    spectral solver (SPECTRAL_SOLVER_VERSION and chiral SOLVER_SCHEME in the params file)
+    and, if ``settings`` is given (dict with any of ui, uf, wi, wf, wcount, branch), were
+    computed with the same settings.  Returns (ws, BAs, peakws, peakBAs, mug, sigma) or None.
     """
-    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1)
+    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1, gamma, lambda4)
     if not all(os.path.exists(fn) for fn in (spectral_filename, peaks_filename, params_filename)):
         return None
     params_data = pd.read_csv(params_filename)
@@ -812,6 +793,15 @@ def load_cached_data(T, mu, mq, lambda1):
             params_data.get('chiral_scheme', pd.Series([None])).iloc[0] != SOLVER_SCHEME):
         print(f"Ignoring cache {spectral_filename}: written by an older solver (recomputing)")
         return None
+    for key, value in (settings or {}).items():
+        if key not in params_data:
+            print(f"Ignoring cache {spectral_filename}: it does not record {key} (recomputing)")
+            return None
+        stored = params_data[key].iloc[0]
+        same = (stored == value) if isinstance(value, str) else np.isclose(float(stored), float(value), rtol=1e-12, atol=0.0)
+        if not same:
+            print(f"Ignoring cache {spectral_filename}: {key} = {stored}, requested {value} (recomputing)")
+            return None
 
     spectral_data = pd.read_csv(spectral_filename)
     peaks_data = pd.read_csv(peaks_filename)
@@ -825,13 +815,12 @@ def load_cached_data(T, mu, mq, lambda1):
     sigma = float(params_data['sigma'].iloc[0]) if 'sigma' in params_data else np.nan
     return ws, BAs, peakws, peakBAs, mug, sigma
 
-def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma=np.nan):
-    """Save the spectral data and peak data to CSV files in a lambda1 subfolder (truncated to 1 decimal place)"""
-    # Ensure data directory exists in mu_g_440 directory (no further subfolders)
-    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1)
+def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma=np.nan,
+              gamma=GAMMA_DEFAULT, lambda4=LAMBDA4_DEFAULT, settings=None):
+    """Save the spectrum, its peaks and every parameter of the run (params file) as CSV."""
+    data_dir, spectral_filename, peaks_filename, params_filename = _spectral_data_paths(T, mu, mq, lambda1, gamma, lambda4)
     os.makedirs(data_dir, exist_ok=True)
-    
-    # Save spectral data
+
     spectral_data = pd.DataFrame({
         'omega': ws,
         'spectral_function_real': np.real(BAs),
@@ -840,8 +829,7 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma=np.nan):
     })
     spectral_data.to_csv(spectral_filename, index=False)
     print(f"Spectral data saved to {spectral_filename}")
-    
-    # Save peaks data
+
     peaks_data = pd.DataFrame({
         'peak_omega': peakws,
         'peak_omega_squared_dimensionless': (peakws/mug)**2,
@@ -851,58 +839,53 @@ def save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma=np.nan):
     })
     peaks_data.to_csv(peaks_filename, index=False)
     print(f"Peaks data saved to {peaks_filename}")
-    
-    # Calculate zh for parameter saving
-    zh = z_h(T, mu)  # Call the z_h function with explicit parameters
-    Q = Q_func(zh, mu)  # Get Q value with explicit parameter
-    
-    # Save parameters
-    params_data = pd.DataFrame({
+
+    zh = z_h(T, mu)
+    Q = Q_func(zh, mu)
+    params = {
         'temperature': [T],
         'chemical_potential': [mu],
         'quark_mass': [mq],
         'lambda1': [lambda1],
+        'gamma': [gamma],
+        'lambda4': [lambda4],
         'mu_g': [mug],
         'z_h': [zh],
         'Q': [Q],
         'sigma': [sigma],
         'spectral_solver': [SPECTRAL_SOLVER_VERSION],
         'chiral_scheme': [SOLVER_SCHEME],
-    })
-    params_data.to_csv(params_filename, index=False)
+    }
+    for key, value in (settings or {}).items():
+        params[key] = [value]
+    pd.DataFrame(params).to_csv(params_filename, index=False)
     print(f"Parameters saved to {params_filename}")
-    
+
     return spectral_filename, peaks_filename, params_filename
 
-def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438, 
-         mq_tolerance_value=0.01, wi_value=700, wf_value=2400, 
-         wcount_value=1700, wresolution_value=0.1, ui_value=1e-2, uf_value=1-1e-4, 
-         expected_peaks=None, show_plot=True, load_if_exists=False):
+def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
+         mq_tolerance_value=0.01, wi_value=700, wf_value=2400,
+         wcount_value=1700, wresolution_value=0.01, ui_value=1e-2, uf_value=1-1e-4,
+         expected_peaks=None, show_plot=True, load_if_exists=False,
+         gamma_value=GAMMA_DEFAULT, lambda4_value=LAMBDA4_DEFAULT, branch='stable'):
     """
-    Main function to compute axial vector meson spectral functions
-    
+    Compute the axial-vector spectral function.
+
     Args:
-        T_value: Temperature in MeV (default: 17)
-        mu_value: Chemical potential in MeV (default: 0)
-        mq_value: Quark mass (default: 9)
-        lambda1_value: Lambda1 parameter (default: 7.438)
-        mq_tolerance_value: Tolerance for quark mass (default: 0.01)
-        wi_value: Initial frequency in MeV (default: 700)
-        wf_value: Final frequency in MeV (default: 1800)
-        wcount_value: Number of frequency points (default: 110)
-        wresolution_value: Frequency resolution (default: 0.1)
-        ui_value: Initial u coordinate (default: 1e-2)
-        uf_value: Final u coordinate (default: 1-1e-4)
-        expected_peaks: Expected number of peaks (default: None)
-        show_plot: Whether to display the plot (default: True)
-        load_if_exists: Load cached data if available (default: False)
-        
+        T_value, mu_value: temperature and chemical potential in MeV
+        mq_value, lambda1_value, gamma_value, lambda4_value: model parameters
+        wi_value, wf_value, wcount_value: frequency grid (MeV)
+        wresolution_value: accuracy of the peak positions (MeV)
+        ui_value, uf_value: integration range in u
+        branch: chiral solution to use where there are several ('stable', 'broken', 'restored')
+        expected_peaks: ignored (kept for the old interface)
+        load_if_exists: load a cached spectrum computed with the same parameters and settings
+
     Returns:
         Tuple of (ws, BAs, peakws, peakBAs, mug, sigma)
     """
-    # Set global parameters
     global T, mu, mq, mq_tolerance, wi, wf, wcount, wresolution, chi_interp, last_used_cache
-    
+
     T = T_value
     mu = mu_value
     mq = mq_value
@@ -911,10 +894,12 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
     wf = wf_value
     wcount = wcount_value
     wresolution = wresolution_value
-    
+    settings = {'ui': ui_value, 'uf': uf_value, 'wi': wi, 'wf': wf, 'wcount': wcount, 'branch': branch,
+                'wresolution': wresolution_value, 'mq_tolerance': mq_tolerance_value}
+
     last_used_cache = False
     if load_if_exists:
-        cached = load_cached_data(T, mu, mq, lambda1_value)
+        cached = load_cached_data(T, mu, mq, lambda1_value, gamma_value, lambda4_value, settings)
         if cached is not None:
             ws, BAs, peakws, peakBAs, mug, cached_sigma = cached
             print("Loaded cached axial spectral data.")
@@ -924,65 +909,50 @@ def main(T_value=17, mu_value=0, mq_value=9, lambda1_value=7.438,
             return (ws, BAs, peakws, peakBAs, mug, cached_sigma)
 
     print(f"Computing axial vector spectral function with parameters:")
-    print(f"T = {T} MeV, μ = {mu} MeV, m_q = {mq}, λ₁ = {lambda1_value}")
-    if expected_peaks is not None:
-        print(f"Expected peak count provided: {expected_peaks}")
-    
-    # Calculate model variables
-    mug, zh, Q, lambda1, lambda3, lambda4, g5, zeta = calculate_variables(lambda1_value, T_value, mu_value)
-    
-    # Initialize chiral field and get sigma value
-    sigma = initialize_chiral_field(mq, mq_tolerance, T, mu_value, lambda1, ui_value, uf_value)
-    
-    # Verify chi_interp was set properly
+    print(f"T = {T} MeV, μ = {mu} MeV, m_q = {mq}, λ₁ = {lambda1_value}, γ = {gamma_value}, λ₄ = {lambda4_value}")
+
+    mug, zh, Q, lambda1, lambda3, lambda4, g5, zeta = calculate_variables(lambda1_value, T_value, mu_value,
+                                                                           gamma_value, lambda4_value)
+
+    sigma = initialize_chiral_field(mq, mq_tolerance, T, mu_value, lambda1, ui_value, uf_value,
+                                    gamma_value, lambda4_value, branch)
     if chi_interp is None:
         raise RuntimeError("chi_interp is still None after initialization")
-    
-    # Calculate spectral function data with expected peak count
-    ws, BAs, peakws, peakBAs = calculate_data(wi, wf, wcount, wresolution, ui_value, uf_value, g5, zh, mq, mug, zeta, sigma, Q, lambda1, lambda3, lambda4, expected_peaks)
-    
-    # Sort the data by frequency
-    sort_indices = np.argsort(ws)
-    ws = ws[sort_indices]
-    BAs = np.array(BAs)[sort_indices]
 
-    # Sort peak data
-    peak_sort_indices = np.argsort(peakws)
-    peakws = peakws[peak_sort_indices]
-    peakBAs = np.array(peakBAs)[peak_sort_indices]
-    
-    # Save the data
-    save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma)
-    # Plot and save the results (will always save, but only display if show_plot is True)
+    ws, BAs, peakws, peakBAs = calculate_data(wi, wf, wcount, wresolution, ui_value, uf_value, g5, zh, mq, mug, zeta,
+                                              sigma, Q, lambda1, lambda3, lambda4, expected_peaks)
+
+    save_data(ws, BAs, peakws, peakBAs, mug, T, mu, mq, lambda1, sigma, gamma_value, lambda4_value, settings)
     plot_results(ws, BAs, peakws, peakBAs, mug, T, mu, mq, show_plot, lambda1=lambda1_value)
-    # Return sigma alongside spectral data
     return (ws, BAs, peakws, peakBAs, mug, sigma)
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Calculate axial vector meson spectral functions')
     parser.add_argument('-T', type=float, default=17.0, help='Temperature in MeV (default: 17.0)')
     parser.add_argument('-mu', type=float, default=0.0, help='Chemical potential in MeV (default: 0.0)')
     parser.add_argument('-mq', type=float, default=9.0, help='Quark mass (default: 9.0)')
     parser.add_argument('-lambda1', type=float, default=7.438, help='Lambda1 parameter (default: 7.438)')
+    parser.add_argument('-gamma', type=float, default=GAMMA_DEFAULT, help=f'gamma (default: {GAMMA_DEFAULT})')
+    parser.add_argument('-lambda4', type=float, default=LAMBDA4_DEFAULT, help=f'lambda4 (default: {LAMBDA4_DEFAULT})')
     parser.add_argument('-wi', type=float, default=700.0, help='Initial frequency in MeV (default: 700.0)')
     parser.add_argument('-wf', type=float, default=2400.0, help='Final frequency in MeV (default: 2400.0)')
     parser.add_argument('-wc', type=int, default=1700, help='Number of frequency points (default: 1700)')
-    parser.add_argument('-wr', type=float, default=0.01, help='Frequency resolution (default: 0.01)')
+    parser.add_argument('-wr', type=float, default=0.01, help='Accuracy of the peak positions in MeV (default: 0.01)')
     parser.add_argument('-ui', type=float, default=1e-2, help='Initial u coordinate (default: 1e-2)')
     parser.add_argument('-uf', type=float, default=1-1e-4, help='Final u coordinate (default: 1-1e-4)')
-    parser.add_argument('-ep', type=int, help='Expected number of peaks (optional)')
+    parser.add_argument('-ep', type=int, help='Ignored (kept for old command lines)')
+    parser.add_argument('--branch', choices=['stable', 'broken', 'restored'], default='stable',
+                        help='Chiral solution to use in the first-order region (default: stable)')
     parser.add_argument('--no-plot', action='store_true', help='Do not display the plot')
     parser.add_argument('--sigma-out', type=str, help='Path to write sigma value as CSV')
     parser.add_argument('--normalize', action='store_true', help='Normalize spectrum by dividing by (ω/μ_g)^2')
     parser.add_argument('--load-if-exists', action='store_true', help='Load cached spectral data if available')
 
     args = parser.parse_args()
-    # Set normalization flag for plotting
     normalize_spectrum = args.normalize
 
-    # Run main to get results and sigma
     result = main(
         T_value=args.T,
         mu_value=args.mu,
@@ -996,13 +966,13 @@ if __name__ == "__main__":
         uf_value=args.uf,
         expected_peaks=args.ep,
         show_plot=not args.no_plot,
-        load_if_exists=args.load_if_exists
+        load_if_exists=args.load_if_exists,
+        gamma_value=args.gamma,
+        lambda4_value=args.lambda4,
+        branch=args.branch,
     )
-    # main now returns (ws, BAs, peakws, peakBAs, mug, sigma)
     *_, sigma = result
-    # Write sigma to CSV if requested
     if args.sigma_out:
-        import pandas as pd
         df_sigma = pd.DataFrame({'sigma': [sigma]})
         df_sigma.to_csv(args.sigma_out, index=False)
         print(f"Sigma value saved to {args.sigma_out}")
